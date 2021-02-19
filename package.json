@@ -1,0 +1,27 @@
+{
+  "name": "tutti",
+  "version": "1.0.0",
+  "description": "",
+  "main": "tutti.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iflb/tutti-js.git"
+  },
+  "author": "Susumu Saito",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iflb/tutti-js/issues"
+  },
+  "homepage": "https://iflb.github.io/tutti",
+  "devDependencies": {
+    "terser-webpack-plugin": "^5.1.1",
+    "webpack": "^5.23.0",
+    "webpack-dev-server": "^3.11.2"
+  },
+  "dependencies": {
+    "ducts": "github:iflb/ducts-js"
+  }
+}
