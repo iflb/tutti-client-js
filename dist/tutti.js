@@ -29,6 +29,7 @@ module.exports = __webpack_require__(/*! ./lib/tutti */ "./lib/tutti.js");
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const ducts = __webpack_require__(/*! ducts */ "./node_modules/ducts/index.js");
+const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
 
 class Duct extends ducts.Duct {
 
