@@ -29,12 +29,11 @@ module.exports = __webpack_require__(/*! ./lib/tutti */ "./lib/tutti.js");
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const ducts = __webpack_require__(/*! ducts */ "./node_modules/ducts/index.js");
-const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
 
 class Duct extends ducts.Duct {
 
     constructor() {
-	    super();
+        super();
 
         this.onOpenHandlers = [];
 
@@ -57,16 +56,16 @@ class Duct extends ducts.Duct {
     }
 
     _onopen(self, event) {
-	    super._onopen( self, event );
+        super._onopen( self, event );
         self.setEventHandler( self.EVENT.APP_WSD, (rid, eid, data) => { self.APP_WSD = data } );
-	    self.send( self.next_rid(), self.EVENT.APP_WSD, null );
+        self.send( self.next_rid(), self.EVENT.APP_WSD, null );
 
         this.setupHandlers(this);
         for(const handler of this.onOpenHandlers)  handler();
     }
 
     _onmessage(self, event) {
-        const [rid, eid, data] = self.decode(MessagePack.Buffer.from(event.source.data));
+        const [rid, eid, data] = self.decode(Buffer.from(event.source.data));
         if(self.logger) self.logger.addReceived(rid, eid, data);
         super._onmessage( self, event );
     }
@@ -214,19 +213,19 @@ class DuctEventLogger {
 class DuctEventListener extends ducts.DuctEventListener {
     constructor() {
         super();
-	    this.on =
-	        (names, { success, error }) => {
-	    	        for(let name of (names instanceof Array) ? names : [names]) {
-	    	            if (!(name in this)) {
-	    	        	    throw new ReferenceError('['+name+'] is not defined');
-	    	            } 
+        this.on =
+            (names, { success, error }) => {
+                for(let name of (names instanceof Array) ? names : [names]) {
+                    if (!(name in this)) {
+                        throw new ReferenceError('['+name+'] is not defined');
+                    } 
 
-                        // if the listener is an empty object (= no handler is registered yet), then initialize it
-                        if(this[name] && Object.keys(this[name]).length === 0 && this[name].constructor === Object)  this[name] = { success: [], error: [] };
-                        
-	    	            this[name].success.push(success);
-	    	            this[name].error.push(error);
-	    	        }
+                    // if the listener is an empty object (= no handler is registered yet), then initialize it
+                    if(this[name] && Object.keys(this[name]).length === 0 && this[name].constructor === Object)  this[name] = { success: [], error: [] };
+                    
+                    this[name].success.push(success);
+                    this[name].error.push(error);
+                }
             }
     }
 };
@@ -324,8 +323,8 @@ class MTurkController {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.LIST_WORKERS, { Platform: "MTurk" } );
             };
         this.notifyWorkers =
-            ( Subject, MessageText, sendEmailWorkerIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_NOTIFY_WORKERS, { Subject, MessageText, sendEmailWorkerIds } );
+            ( Subject, MessageText, SendEmailWorkerIds ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_NOTIFY_WORKERS, { Subject, MessageText, SendEmailWorkerIds } );
             };
         this.createHITType =
             ( CreateHITTypeParams ) => {
