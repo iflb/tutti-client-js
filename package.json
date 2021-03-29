@@ -1,8 +1,11 @@
 {
-  "name": "tutti",
-  "version": "1.0.0",
+  "name": "@iflb/tutti",
+  "version": "1.0.1",
   "description": "",
-  "main": "tutti.js",
+  "main": "lib/tutti.js",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -22,6 +25,7 @@
     "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
-    "ducts": "github:iflb/ducts-js"
+    "@iflb/ducts": "^1.0.1",
+    "buffer": "^5.7.1"
   }
 }

@@ -4,9 +4,9 @@
 	else if(typeof define === 'function' && define.amd)
 		define([], factory);
 	else if(typeof exports === 'object')
-		exports["ducts"] = factory();
+		exports["tutti"] = factory();
 	else
-		root["ducts"] = factory();
+		root["tutti"] = factory();
 })(self, function() {
 return /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
@@ -28,7 +28,8 @@ module.exports = __webpack_require__(/*! ./lib/tutti */ "./lib/tutti.js");
   \**********************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-const ducts = __webpack_require__(/*! ducts */ "./node_modules/ducts/index.js");
+const ducts = __webpack_require__(/*! @iflb/ducts */ "./node_modules/@iflb/ducts/lib/ducts.js");
+const Buffer = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js").Buffer;
 
 class Duct extends ducts.Duct {
 
@@ -112,6 +113,8 @@ class Duct extends ducts.Duct {
                               (rid, eid, data) => { self._handleResource(self, "listTemplates", data); } );
         self.setEventHandler( self.EVENT.GET_RESPONSES_FOR_TEMPLATE,
                               (rid, eid, data) => { self._handleResource(self, "getResponsesForTemplate", data); } );
+        self.setEventHandler( self.EVENT.GET_RESPONSES_FOR_NANOTASK,
+                              (rid, eid, data) => { self._handleResource(self, "getResponsesForNanotask", data); } );
         self.setEventHandler( self.EVENT.GET_NANOTASKS,
                               (rid, eid, data) => { self._handleResource(self, "getNanotasks", data); } );
         self.setEventHandler( self.EVENT.UPLOAD_NANOTASKS,
@@ -157,6 +160,9 @@ class Duct extends ducts.Duct {
         self.setEventHandler( self.EVENT.MTURK_LIST_HITS,
                               (rid, eid, data) => { self._handleMTurk(self, "listHITs", data); } );
 
+        self.setEventHandler( self.EVENT.MTURK_LIST_HITS_FOR_HIT_TYPE,
+                              (rid, eid, data) => { self._handleMTurk(self, "listHITsForHITType", data); } );
+
         self.setEventHandler( self.EVENT.MTURK_EXPIRE_HITS,
                               (rid, eid, data) => { self._handleMTurk(self, "expireHITs", data); } );
 
@@ -178,8 +184,19 @@ class Duct extends ducts.Duct {
 
         self.setEventHandler( self.EVENT.MTURK_DELETE_QUALIFICATIONS,
                               (rid, eid, data) => { self._handleMTurk(self, "deleteQualifications", data); } );
+
+        self.setEventHandler( self.EVENT.MTURK_LIST_ASSIGNMENTS,
+                              (rid, eid, data) => { self._handleMTurk(self, "listAssignments", data); } );
+        self.setEventHandler( self.EVENT.MTURK_LIST_ASSIGNMENTS_FOR_HITS,
+                              (rid, eid, data) => { self._handleMTurk(self, "listAssignmentsForHITs", data); } );
+        self.setEventHandler( self.EVENT.MTURK_APPROVE_ASSIGNMENTS,
+                              (rid, eid, data) => { self._handleMTurk(self, "approveAssignments", data); } );
+        self.setEventHandler( self.EVENT.MTURK_REJECT_ASSIGNMENTS,
+                              (rid, eid, data) => { self._handleMTurk(self, "rejectAssignments", data); } );
+        self.setEventHandler( self.EVENT.MTURK_GET_ASSIGNMENTS,
+                              (rid, eid, data) => { self._handleMTurk(self, "getAssignments", data); } );
     }
-};
+}
 
 class DuctEventLogger {
     constructor(duct, dataSizeLimit) {
@@ -228,7 +245,7 @@ class DuctEventListener extends ducts.DuctEventListener {
                 }
             }
     }
-};
+}
 
 class ResourceEventListener extends DuctEventListener {
     constructor() {
@@ -243,6 +260,7 @@ class ResourceEventListener extends DuctEventListener {
         this.listTemplatePresets = {};
         this.listTemplates = {};
         this.getResponsesForTemplate = {};
+        this.getResponsesForNanotask = {};
         this.getNanotasks = {};
         this.uploadNanotasks = {};
         this.deleteNanotasks = {};
@@ -268,12 +286,18 @@ class MTurkEventListener extends DuctEventListener {
         this.createHITsWithHITType = {};
         this.listQualifications = {};
         this.listHITs = {};
+        this.listHITsForHITType = {};
         this.expireHITs = {};
         this.deleteHITs = {};
         this.createQualification = {};
         this.listWorkers = {};
         this.listWorkersWithQualificationType = {};
         this.deleteQualifications = {};
+        this.listAssignments = {};
+        this.listAssignmentsForHITs = {};
+        this.approveAssignments = {};
+        this.rejectAssignments = {};
+        this.getAssignments = {};
     }
 }
 
@@ -327,8 +351,8 @@ class MTurkController {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_NOTIFY_WORKERS, { Subject, MessageText, SendEmailWorkerIds } );
             };
         this.createHITType =
-            ( CreateHITTypeParams ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_HIT_TYPE, { CreateHITTypeParams } );
+            ( CreateHITTypeParams, HITTypeQualificationTypeId ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_HIT_TYPE, { CreateHITTypeParams, HITTypeQualificationTypeId } );
             };
         this.createHITsWithHITType =
             ( ProjectName, NumHITs, CreateHITsWithHITTypeParams ) => {
@@ -349,6 +373,30 @@ class MTurkController {
         this.listHITs =
             ( Cached ) => {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_HITS, { Cached } );
+            };
+        this.listHITsForHITType =
+            ( HITTypeId=null, Cached=true ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_HITS_FOR_HIT_TYPE, { HITTypeId, Cached } );
+            };
+        this.listAssignments =
+            ( Cached ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_ASSIGNMENTS, { Cached } );
+            };
+        this.listAssignmentsForHITs =
+            ( HITIds ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_ASSIGNMENTS_FOR_HITS, { HITIds } );
+            };
+        this.approveAssignments =
+            ( AssignmentIds, RequesterFeedback ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_APPROVE_ASSIGNMENTS, { AssignmentIds, RequesterFeedback } );
+            };
+        this.rejectAssignments =
+            ( AssignmentIds, RequesterFeedback ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_REJECT_ASSIGNMENTS, { AssignmentIds, RequesterFeedback } );
+            };
+        this.getAssignments =
+            ( AssignmentIds ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_GET_ASSIGNMENTS, { AssignmentIds } );
             };
     }
 }
@@ -381,6 +429,10 @@ class ResourceController {
         this.getResponsesForTemplate =
             ( ProjectName, TemplateName ) => {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_RESPONSES_FOR_TEMPLATE, { ProjectName, TemplateName } );
+            };
+        this.getResponsesForNanotask =
+            ( NanotaskId ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_RESPONSES_FOR_NANOTASK, { NanotaskId } );
             };
         this.createTemplates =
             ( ProjectName, TemplateNames, PresetEnvName, PresetTemplateName ) => {
@@ -440,6 +492,318 @@ module.exports = {
     MTurkController,
     ResourceController,
 }
+
+
+/***/ }),
+
+/***/ "./node_modules/@iflb/ducts/lib/ducts.js":
+/*!***********************************************!*\
+  !*** ./node_modules/@iflb/ducts/lib/ducts.js ***!
+  \***********************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
+const { encode, decode } = MessagePack.initialize(2**22);
+const WebSocket = __webpack_require__(/*! websocket */ "./node_modules/websocket/lib/browser.js").w3cwebsocket;
+const fetch = __webpack_require__(/*! node-fetch */ "./node_modules/node-fetch/browser.js");
+const getRandomValues = __webpack_require__(/*! get-random-values */ "./node_modules/get-random-values/index.js");
+const Buffer = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js").Buffer;
+
+//https://github.com/necojackarc/extensible-custom-error/blob/master/src/index.js
+class DuctError extends Error {
+    
+    constructor(message, error=null, ...args) {
+	super(message, error, ...args);
+
+	// Align with Object.getOwnPropertyDescriptor(Error.prototype, 'name')
+	Object.defineProperty(this, 'name', {
+	    configurable: true,
+	    enumerable: false,
+	    value: this.constructor.name,
+	    writable: true,
+	});
+
+	// Helper function to merge stack traces
+	const merge =
+	      (stackTraceToMerge, baseStackTrace) => {
+		  const entriesToMerge = stackTraceToMerge.split('\n');
+		  const baseEntries = baseStackTrace.split('\n');
+		  const newEntries = [];
+		  entriesToMerge.forEach((entry) => {
+		      if (baseEntries.includes(entry)) {
+			  return;
+		      }
+		      newEntries.push(entry);
+		  });
+		  return [...newEntries, ...baseEntries].join('\n');
+	      };
+	if (Error.captureStackTrace) {
+	    Error.captureStackTrace(this, this.constructor);
+	    this.stack = error ? merge(this.stack, error.stack) : this.stack;
+	}
+	
+    }
+    
+};
+
+class DuctEvent {
+    constructor() {
+    }
+};
+
+class DuctConnectionEvent extends DuctEvent {
+
+    constructor(state, source) {
+	super();
+	this.state = state;
+	this.source = source;
+    }
+
+};
+
+class DuctMessageEvent extends DuctEvent {
+
+    constructor(rid, eid, data) {
+	super();
+	this.rid = rid;
+	this.eid = eid;
+	this.data = data;
+    }
+
+};
+
+const State = Object.freeze({
+    CLOSE : -1
+    , OPEN_CONNECTING : WebSocket.CONNECTING 
+    , OPEN_CONNECTED : WebSocket.OPEN 
+    , OPEN_CLOSING : WebSocket.CONNECTING 
+    , OPEN_CLOSED : WebSocket.CLOSED 
+});
+
+class DuctEventListener {
+    
+    constructor() {
+	this.on =
+	    (names, func) => {
+		for(let name of (names instanceof Array) ? names : [names]) {
+		    if (!(name in this)) {
+			throw new ReferenceError('['+name+'] in '+this.constructor.name);
+		    } 
+		    this[name] = func;
+		}
+		
+	    };
+	
+    }
+};
+
+class ConnectionEventListener extends DuctEventListener {
+    onopen(event){}
+    onclose(event){}
+    onerror(event){}
+    onmessage(event){}
+    
+};
+
+class Duct {
+    
+    constructor() {
+	this.WSD = null;
+	this.EVENT = null;
+	this.encode = null;
+	this.decode = null;
+	
+    this.next_rid = 
+        () => {
+            let next_id = new Date().getTime();
+            if (next_id <= this.last_rid) {
+                next_id = this.last_rid + 1;
+            }
+            this.last_rid = next_id;
+            return next_id;
+        };
+	this.open =
+	    (wsd_url, uuid = null, params = {}) => {return this._open(this, wsd_url, uuid, params);};
+	this.reconnect =
+	    () => {return this._reconnect(this);};
+	this.send = 
+	    (request_id, event_id, data) => {return this._send(this, request_id, event_id, data)};
+	this.close =
+	    () => {return this._close(this);};
+
+	this._connection_listener = new ConnectionEventListener();
+	
+	this._event_handler = {};
+	this.setEventHandler = 
+	    (event_id, handler) => {this._event_handler[event_id] = handler;};
+	this.catchall_event_handler = (rid, eid, data) => {};
+	this.uncaught_event_handler = (rid, eid, data) => {};
+	this.event_error_handler = (rid, eid, data, error) => {};
+	
+    }
+
+    get state() {
+	if (this._ws) {
+	    return this._ws.readyState;
+	} else {
+	    return State.CLOSE;
+	}
+    }
+
+    _reconnect(self, wsd) {
+	if (wsd != null) {
+	    self.WSD = wsd;
+	    self.EVENT = self.WSD.EVENT;
+	}
+	return new Promise(function(resolve, reject) {
+	    if (self._ws) {
+		resolve(self);
+		return;
+	    }
+	    let ws = new WebSocket(self.WSD.websocket_url_reconnect);
+	    ws.binaryType = 'arraybuffer';
+	    ws.onopen = 
+		(event) => {
+		    ws.onerror =
+			(event) => {self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));};
+		    ws.onclose =
+			(event) => {self._connection_listener.onclose(new DuctConnectionEvent('onclose', event));};
+		    ws.onmessage = 
+			(event) => {self._onmessage(self, new DuctConnectionEvent('onmessage', event));};
+		    self._ws = ws;
+		    self._onreconnect(self, event);
+		    self._connection_listener.onopen(new DuctConnectionEvent('onopen', event));
+		    resolve(self);
+		};
+	    ws.onerror =
+		(event) => {
+		    self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));
+		    reject(event);
+		};
+	});
+    }
+    
+    _open(self, wsd_url, uuid, params) {
+	return new Promise(function(resolve, reject) {
+	    if (self._ws) {
+		resolve(self);
+		return;
+	    }
+	    let query = uuid != null ? uuid : '?uuid='+([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+	    for (let [key, value] of Object.entries(params)) {
+		query += '&'+key+'='+value;
+	    }
+	    fetch(wsd_url + query, { headers: { "User-Agent": "" } })
+		.then( response => {
+		    return response.json();
+		}).then( wsd => {
+		    //console.log(wsd);
+		    self.WSD = wsd;
+		    self.EVENT = self.WSD.EVENT;
+		    //console.log(self.WSD.websocket_url);
+		    let ws = new WebSocket(self.WSD.websocket_url);
+		    ws.binaryType = 'arraybuffer';
+		    ws.onopen = 
+			(event) => {
+			    ws.onerror =
+				(event) => {self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));};
+			    ws.onclose =
+				(event) => {self._connection_listener.onclose(new DuctConnectionEvent('onclose', event));};
+			    ws.onmessage = 
+				(event) => {self._onmessage(self, new DuctConnectionEvent('onmessage', event));};
+			    self._ws = ws;
+			    self._onopen(self, event);
+			    self._connection_listener.onopen(new DuctConnectionEvent('onopen', event));
+			    resolve(self);
+			};
+		    ws.onerror =
+			(event) => {
+			    self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));
+			    reject(event);
+			};
+		}).catch( (error) => {
+		    //console.error(error);
+		    self._connection_listener.onerror(new DuctConnectionEvent('onerror', error));
+		    reject(error);
+		});
+	});
+    }
+    
+    _onopen(self, event) {
+	self.encode = encode;
+	self.decode = decode;
+	self._send_timestamp = new Date().getTime() / 1000;
+	self.time_offset = 0;
+	self.time_latency = 0;
+	self._time_count = 0;
+	self.setEventHandler(this.EVENT.ALIVE_MONITORING, (rid, eid, data) => {
+	    let client_received = new Date().getTime() / 1000;
+	    let server_sent = data[0];
+	    let server_received = data[1];
+	    let client_sent = this._send_timestamp;
+	    //console.log('t0='+client_sent+', t1='+server_received+', t2='+server_sent+',t3='+client_received);
+	    let new_offset = ((server_received - client_sent) - (client_received - server_sent))/2;
+	    let new_latency = ((client_received - client_sent) - (server_sent - server_received))/2;
+	    this.time_offset = (this.time_offset * this._time_count + new_offset) / (this._time_count + 1);
+	    this.time_latency = (this.time_latency * this._time_count + new_latency) / (this._time_count + 1);
+	    this._time_count += 1;
+	    //console.log('offset='+this.time_offset+', latency='+this.time_latency);
+	});
+	let rid = self.next_rid();
+	let eid = self.EVENT.ALIVE_MONITORING;
+	let value = self._send_timestamp;
+	self.send(rid, eid, value);
+    }
+    
+    _onreconnect(self, event) {
+	//console.log('reconnected');
+    }
+    
+    _send(self, request_id, event_id, data) {
+	const msgpack = self.encode([request_id, event_id, data])
+	self._ws.send(msgpack)
+	return request_id;
+    }
+    
+    _close(self) {
+	try {
+	    if (self._ws) {
+		self._ws.close();
+	    }
+	} finally {
+	    self._ws = null;
+	}
+    }
+    
+    _onmessage(self, event) {
+	try {
+	    self._connection_listener.onmessage(event);
+	    const [rid, eid, data] = self.decode(Buffer.from(event.source.data));
+	    try {
+		self.catchall_event_handler(rid, eid, data);
+		let handle = (eid in self._event_handler) ? self._event_handler[eid] : self.uncaught_event_handler;
+		handle(rid, eid, data);
+	    } catch(error) {
+		self.event_error_handler(rid, eid, data, error);
+	    }
+	}
+	catch (error) {
+	    self.event_error_handler(-1, -1, null, error);
+	}
+    }
+
+};
+
+module.exports = {
+    DuctError,
+    DuctEvent,
+    DuctConnectionEvent,
+    DuctMessageEvent,
+    State,
+    DuctEventListener,
+    ConnectionEventListener,
+    Duct
+};
 
 
 /***/ }),
@@ -2433,320 +2797,6 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/ducts/index.js":
-/*!*************************************!*\
-  !*** ./node_modules/ducts/index.js ***!
-  \*************************************/
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-module.exports = __webpack_require__(/*! ./lib/ducts */ "./node_modules/ducts/lib/ducts.js");
-
-
-/***/ }),
-
-/***/ "./node_modules/ducts/lib/ducts.js":
-/*!*****************************************!*\
-  !*** ./node_modules/ducts/lib/ducts.js ***!
-  \*****************************************/
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
-const { encode, decode } = MessagePack.initialize(2**22);
-const WebSocket = __webpack_require__(/*! websocket */ "./node_modules/websocket/lib/browser.js").w3cwebsocket;
-const fetch = __webpack_require__(/*! node-fetch */ "./node_modules/node-fetch/browser.js");
-
-//https://github.com/necojackarc/extensible-custom-error/blob/master/src/index.js
-class DuctError extends Error {
-    
-    constructor(message, error=null, ...args) {
-	super(message, error, ...args);
-
-	// Align with Object.getOwnPropertyDescriptor(Error.prototype, 'name')
-	Object.defineProperty(this, 'name', {
-	    configurable: true,
-	    enumerable: false,
-	    value: this.constructor.name,
-	    writable: true,
-	});
-
-	// Helper function to merge stack traces
-	const merge =
-	      (stackTraceToMerge, baseStackTrace) => {
-		  const entriesToMerge = stackTraceToMerge.split('\n');
-		  const baseEntries = baseStackTrace.split('\n');
-		  const newEntries = [];
-		  entriesToMerge.forEach((entry) => {
-		      if (baseEntries.includes(entry)) {
-			  return;
-		      }
-		      newEntries.push(entry);
-		  });
-		  return [...newEntries, ...baseEntries].join('\n');
-	      };
-	if (Error.captureStackTrace) {
-	    Error.captureStackTrace(this, this.constructor);
-	    this.stack = error ? merge(this.stack, error.stack) : this.stack;
-	}
-	
-    }
-    
-};
-
-class DuctEvent {
-    constructor() {
-    }
-};
-
-class DuctConnectionEvent extends DuctEvent {
-
-    constructor(state, source) {
-	super();
-	this.state = state;
-	this.source = source;
-    }
-
-};
-
-class DuctMessageEvent extends DuctEvent {
-
-    constructor(rid, eid, data) {
-	super();
-	this.rid = rid;
-	this.eid = eid;
-	this.data = data;
-    }
-
-};
-
-const State = Object.freeze({
-    CLOSE : -1
-    , OPEN_CONNECTING : WebSocket.CONNECTING 
-    , OPEN_CONNECTED : WebSocket.OPEN 
-    , OPEN_CLOSING : WebSocket.CONNECTING 
-    , OPEN_CLOSED : WebSocket.CLOSED 
-});
-
-class DuctEventListener {
-    
-    constructor() {
-	this.on =
-	    (names, func) => {
-		for(let name of (names instanceof Array) ? names : [names]) {
-		    if (!(name in this)) {
-			throw new ReferenceError('['+name+'] in '+this.constructor.name);
-		    } 
-		    this[name] = func;
-		}
-		
-	    };
-	
-    }
-};
-
-class ConnectionEventListener extends DuctEventListener {
-    onopen(event){}
-    onclose(event){}
-    onerror(event){}
-    onmessage(event){}
-    
-};
-
-class Duct {
-    
-    constructor() {
-	this.WSD = null;
-	this.EVENT = null;
-	this.encode = null;
-	this.decode = null;
-	
-	this.next_rid =
-	    () => {return ducts._local.next_rid();};
-	this.open =
-	    (wsd_url, uuid = null, params = {}) => {return this._open(this, wsd_url, uuid, params);};
-	this.reconnect =
-	    () => {return this._reconnect(this);};
-	this.send = 
-	    (request_id, event_id, data) => {return this._send(this, request_id, event_id, data)};
-	this.close =
-	    () => {return this._close(this);};
-
-	this._connection_listener = new ConnectionEventListener();
-	
-	this._event_handler = {};
-	this.setEventHandler = 
-	    (event_id, handler) => {this._event_handler[event_id] = handler;};
-	this.catchall_event_handler = (rid, eid, data) => {};
-	this.uncaught_event_handler = (rid, eid, data) => {};
-	this.event_error_handler = (rid, eid, data, error) => {};
-	
-    }
-
-    get state() {
-	if (this._ws) {
-	    return this._ws.readyState;
-	} else {
-	    return State.CLOSE;
-	}
-    }
-
-    _reconnect(self, wsd) {
-	if (wsd != null) {
-	    self.WSD = wsd;
-	    self.EVENT = self.WSD.EVENT;
-	}
-	return new Promise(function(resolve, reject) {
-	    if (self._ws) {
-		resolve(self);
-		return;
-	    }
-	    let ws = new WebSocket(self.WSD.websocket_url_reconnect);
-	    ws.binaryType = 'arraybuffer';
-	    ws.onopen = 
-		(event) => {
-		    ws.onerror =
-			(event) => {self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));};
-		    ws.onclose =
-			(event) => {self._connection_listener.onclose(new DuctConnectionEvent('onclose', event));};
-		    ws.onmessage = 
-			(event) => {self._onmessage(self, new DuctConnectionEvent('onmessage', event));};
-		    self._ws = ws;
-		    self._onreconnect(self, event);
-		    self._connection_listener.onopen(new DuctConnectionEvent('onopen', event));
-		    resolve(self);
-		};
-	    ws.onerror =
-		(event) => {
-		    self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));
-		    reject(event);
-		};
-	});
-    }
-    
-    _open(self, wsd_url, uuid, params) {
-	return new Promise(function(resolve, reject) {
-	    if (self._ws) {
-		resolve(self);
-		return;
-	    }
-	    let query = uuid != null ? uuid : '?uuid='+([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.randomFillSync(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-	    for (let [key, value] of Object.entries(params)) {
-		query += '&'+key+'='+value;
-	    }
-	    fetch(wsd_url + query)
-		.then( response => {
-		    return response.json();
-		}).then( wsd => {
-		    //console.log(wsd);
-		    self.WSD = wsd;
-		    self.EVENT = self.WSD.EVENT;
-		    //console.log(self.WSD.websocket_url);
-		    let ws = new WebSocket(self.WSD.websocket_url);
-		    ws.binaryType = 'arraybuffer';
-		    ws.onopen = 
-			(event) => {
-			    ws.onerror =
-				(event) => {self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));};
-			    ws.onclose =
-				(event) => {self._connection_listener.onclose(new DuctConnectionEvent('onclose', event));};
-			    ws.onmessage = 
-				(event) => {self._onmessage(self, new DuctConnectionEvent('onmessage', event));};
-			    self._ws = ws;
-			    self._onopen(self, event);
-			    self._connection_listener.onopen(new DuctConnectionEvent('onopen', event));
-			    resolve(self);
-			};
-		    ws.onerror =
-			(event) => {
-			    self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));
-			    reject(event);
-			};
-		}).catch( (error) => {
-		    //console.error(error);
-		    self._connection_listener.onerror(new DuctConnectionEvent('onerror', error));
-		    reject(error);
-		});
-	});
-    }
-    
-    _onopen(self, event) {
-	self.encode = ducts.msgpack.encode;
-	self.decode = ducts.msgpack.decode;
-	self._send_timestamp = new Date().getTime() / 1000;
-	self.time_offset = 0;
-	self.time_latency = 0;
-	self._time_count = 0;
-	self.setEventHandler(this.EVENT.ALIVE_MONITORING, (rid, eid, data) => {
-	    let client_received = new Date().getTime() / 1000;
-	    let server_sent = data[0];
-	    let server_received = data[1];
-	    let client_sent = this._send_timestamp;
-	    //console.log('t0='+client_sent+', t1='+server_received+', t2='+server_sent+',t3='+client_received);
-	    let new_offset = ((server_received - client_sent) - (client_received - server_sent))/2;
-	    let new_latency = ((client_received - client_sent) - (server_sent - server_received))/2;
-	    this.time_offset = (this.time_offset * this._time_count + new_offset) / (this._time_count + 1);
-	    this.time_latency = (this.time_latency * this._time_count + new_latency) / (this._time_count + 1);
-	    this._time_count += 1;
-	    //console.log('offset='+this.time_offset+', latency='+this.time_latency);
-	});
-	let rid = self.next_rid();
-	let eid = self.EVENT.ALIVE_MONITORING;
-	let value = self._send_timestamp;
-	self.send(rid, eid, value);
-    }
-    
-    _onreconnect(self, event) {
-	//console.log('reconnected');
-    }
-    
-    _send(self, request_id, event_id, data) {
-	const msgpack = self.encode([request_id, event_id, data])
-	self._ws.send(msgpack)
-	return request_id;
-    }
-    
-    _close(self) {
-	try {
-	    if (self._ws) {
-		self._ws.close();
-	    }
-	} finally {
-	    self._ws = null;
-	}
-    }
-    
-    _onmessage(self, event) {
-	try {
-	    self._connection_listener.onmessage(event);
-	    const [rid, eid, data] = self.decode(MessagePack.Buffer.from(event.source.data));
-	    try {
-		self.catchall_event_handler(rid, eid, data);
-		let handle = (eid in self._event_handler) ? self._event_handler[eid] : self.uncaught_event_handler;
-		handle(rid, eid, data);
-	    } catch(error) {
-		self.event_error_handler(rid, eid, data, error);
-	    }
-	}
-	catch (error) {
-	    self.event_error_handler(-1, -1, null, error);
-	}
-    }
-
-};
-
-module.exports = {
-    DuctError,
-    DuctEvent,
-    DuctConnectionEvent,
-    DuctMessageEvent,
-    State,
-    DuctEventListener,
-    ConnectionEventListener,
-    Duct
-};
-
-
-/***/ }),
-
 /***/ "./node_modules/es5-ext/global.js":
 /*!****************************************!*\
   !*** ./node_modules/es5-ext/global.js ***!
@@ -2788,6 +2838,72 @@ module.exports = (function () {
 		delete Object.prototype.__global__;
 	}
 })();
+
+
+/***/ }),
+
+/***/ "./node_modules/get-random-values/index.js":
+/*!*************************************************!*\
+  !*** ./node_modules/get-random-values/index.js ***!
+  \*************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+var window = __webpack_require__(/*! global/window */ "./node_modules/global/window.js");
+var nodeCrypto = __webpack_require__(/*! crypto */ "?8465");
+
+function getRandomValues(buf) {
+  if (window.crypto && window.crypto.getRandomValues) {
+    return window.crypto.getRandomValues(buf);
+  }
+  if (typeof window.msCrypto === 'object' && typeof window.msCrypto.getRandomValues === 'function') {
+    return window.msCrypto.getRandomValues(buf);
+  }
+  if (nodeCrypto.randomBytes) {
+    if (!(buf instanceof Uint8Array)) {
+      throw new TypeError('expected Uint8Array');
+    }
+    if (buf.length > 65536) {
+      var e = new Error();
+      e.code = 22;
+      e.message = 'Failed to execute \'getRandomValues\' on \'Crypto\': The ' +
+        'ArrayBufferView\'s byte length (' + buf.length + ') exceeds the ' +
+        'number of bytes of entropy available via this API (65536).';
+      e.name = 'QuotaExceededError';
+      throw e;
+    }
+    var bytes = nodeCrypto.randomBytes(buf.length);
+    buf.set(bytes);
+    return buf;
+  }
+  else {
+    throw new Error('No secure random number generator available.');
+  }
+}
+
+module.exports = getRandomValues;
+
+
+/***/ }),
+
+/***/ "./node_modules/global/window.js":
+/*!***************************************!*\
+  !*** ./node_modules/global/window.js ***!
+  \***************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+var win;
+
+if (typeof window !== "undefined") {
+    win = window;
+} else if (typeof __webpack_require__.g !== "undefined") {
+    win = __webpack_require__.g;
+} else if (typeof self !== "undefined"){
+    win = self;
+} else {
+    win = {};
+}
+
+module.exports = win;
 
 
 /***/ }),
@@ -2985,12 +3101,12 @@ Formats the given number using `Number#toLocaleString`.
 - If locale is true, the system default locale is used for translation.
 - If no value for locale is specified, the number is returned unmodified.
 */
-const toLocaleString = (number, locale) => {
+const toLocaleString = (number, locale, options) => {
 	let result = number;
 	if (typeof locale === 'string' || Array.isArray(locale)) {
-		result = number.toLocaleString(locale);
-	} else if (locale === true) {
-		result = number.toLocaleString();
+		result = number.toLocaleString(locale, options);
+	} else if (locale === true || options !== undefined) {
+		result = number.toLocaleString(undefined, options);
 	}
 
 	return result;
@@ -3018,15 +3134,30 @@ module.exports = (number, options) => {
 		number = -number;
 	}
 
+	let localeOptions;
+
+	if (options.minimumFractionDigits !== undefined) {
+		localeOptions = {minimumFractionDigits: options.minimumFractionDigits};
+	}
+
+	if (options.maximumFractionDigits !== undefined) {
+		localeOptions = Object.assign({maximumFractionDigits: options.maximumFractionDigits}, localeOptions);
+	}
+
 	if (number < 1) {
-		const numberString = toLocaleString(number, options.locale);
+		const numberString = toLocaleString(number, options.locale, localeOptions);
 		return prefix + numberString + ' ' + UNITS[0];
 	}
 
 	const exponent = Math.min(Math.floor(options.binary ? Math.log(number) / Math.log(1024) : Math.log10(number) / 3), UNITS.length - 1);
 	// eslint-disable-next-line unicorn/prefer-exponentiation-operator
-	number = Number((number / Math.pow(options.binary ? 1024 : 1000, exponent)).toPrecision(3));
-	const numberString = toLocaleString(number, options.locale);
+	number /= Math.pow(options.binary ? 1024 : 1000, exponent);
+
+	if (!localeOptions) {
+		number = number.toPrecision(3);
+	}
+
+	const numberString = toLocaleString(Number(number), options.locale, localeOptions);
 
 	const unit = UNITS[exponent];
 
@@ -3690,6 +3821,16 @@ const initialize = (tempBufferLength, logFunction) => {
 
 module.exports = { initialize, Buffer };
 
+/***/ }),
+
+/***/ "?8465":
+/*!************************!*\
+  !*** crypto (ignored) ***!
+  \************************/
+/***/ (() => {
+
+/* (ignored) */
+
 /***/ })
 
 /******/ 	});
@@ -3716,6 +3857,19 @@ module.exports = { initialize, Buffer };
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/global */
+/******/ 	(() => {
+/******/ 		__webpack_require__.g = (function() {
+/******/ 			if (typeof globalThis === 'object') return globalThis;
+/******/ 			try {
+/******/ 				return this || new Function('return this')();
+/******/ 			} catch (e) {
+/******/ 				if (typeof window === 'object') return window;
+/******/ 			}
+/******/ 		})();
+/******/ 	})();
 /******/ 	
 /************************************************************************/
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled

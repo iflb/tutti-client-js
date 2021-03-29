@@ -7,7 +7,7 @@ const generateConfig = (name) => ({
       path: __dirname + '/dist/',
       filename: name + '.js',
       sourceMapFilename: name + '.map',
-      library: 'ducts',
+      library: 'tutti',
       libraryTarget: 'umd'
     },
     //node: {
