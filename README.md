@@ -85,88 +85,135 @@ duct.open("https://{your tutti domain}/ducts/wsd").then( (duct) => {   // Open a
 
 ### Resource
 
-- **getEventHistory**
-  - Parameters: None
-- **setEventHistory**
-  - Parameters: `eid`, `query` 
-- **listProjects**
-  - Parameters:  
-- **createProject**
-  - Parameters: `ProjectName` 
-- **listTemplates**
-  - Parameters: `ProjectName` 
-- **getResponsesForTemplate**
-  - Parameters: `ProjectName`, `TemplateName` 
-- **getResponsesForNanotask**
-  - Parameters: `NanotaskId` 
-- **createTemplates**
-  - Parameters: `ProjectName`, `TemplateNames`, `PresetEnvName`, `PresetTemplateName` 
-- **listTemplatePresets**
-  - Parameters: None
-- **getProjectScheme**
-  - Parameters: `ProjectName`, `Cached`
-- **getNanotasks**
-  - Parameters: `ProjectName`, `TemplateName`
-- **deleteNanotasks**
-  - Parameters: `ProjectName`, `TemplateName`, `NanotaskIds`
-- **updateNanotaskNumAssignable**
-  - Parameters: `ProjectName`, `TemplateName`, `NanotaskId`, `NumAssignable`
-- **uploadNanotasks**
-  - Parameters: `ProjectName`, `TemplateName`, `Nanotasks`, `NumAssignable`, `Priority`, `TagName`
-- **getTemplateNode**
-  - Parameters: `Target`, `WorkSessionId`, `NodeSessionId`
-- **createSession**
-  - Parameters: `ProjectName`, `PlatformWorkerId`, `ClientToken`, `Platform`
-- **setResponse**
-  - Parameters: `WorkSessionId`, `NodeSessionId`, `Answers`
-- **checkPlatformWorkerIdExistenceForProject**
-  - Parameters: `ProjectName`, `Platform`, `PlatformWorkerId`
+#### getEventHistory
+- Parameters: None
+- Gets all input parameter histories set by setEventHistory.
+
+#### setEventHistory
+- Parameters: `eid`, `query`
+- Sets input parameters to a history.
+
+#### listProjects
+- Parameters: None
+- Lists Tutti projects.
+
+#### createProject
+- Parameters: `ProjectName`
+- Creates a Tutti project.
+
+#### listTemplates
+- Parameters: `ProjectName`
+- Lists Tutti templates for the specified project.
+
+#### getResponsesForTemplate
+- Parameters: `ProjectName`, `TemplateName`
+- Lists all worker responses for the specified template.
+
+#### getResponsesForNanotask
+- Parameters: `NanotaskId`
+
+#### createTemplates
+- Parameters: `ProjectName`, `TemplateNames`, `PresetEnvName`, `PresetTemplateName`
+
+#### listTemplatePresets
+- Parameters: None
+
+#### getProjectScheme
+- Parameters: `ProjectName`, `Cached`
+
+#### getNanotasks
+- Parameters: `ProjectName`, `TemplateName`
+
+#### deleteNanotasks
+- Parameters: `ProjectName`, `TemplateName`, `NanotaskIds`
+
+#### updateNanotaskNumAssignable
+- Parameters: `ProjectName`, `TemplateName`, `NanotaskId`, `NumAssignable`
+
+#### uploadNanotasks
+- Parameters: `ProjectName`, `TemplateName`, `Nanotasks`, `NumAssignable`, `Priority`, `TagName`
+
+#### getTemplateNode
+- Parameters: `Target`, `WorkSessionId`, `NodeSessionId`
+
+#### createSession
+- Parameters: `ProjectName`, `PlatformWorkerId`, `ClientToken`, `Platform`
+
+#### setResponse
+- Parameters: `WorkSessionId`, `NodeSessionId`, `Answers`
+
+#### checkPlatformWorkerIdExistenceForProject
+- Parameters: `ProjectName`, `Platform`, `PlatformWorkerId`
+
+
   
 ### MTurk
 
-- **getCredentials**
-  - Parameters: 
-- **setCredentials**
-  - Parameters: `AccessKeyId`, `SecretAccessKey`
-- **setSandbox**
-  - Parameters: Enabled
-- **clearCredentials**
-  - Parameters: 
-- **deleteQualifications**
-  - Parameters: `QualificationTypeIds`
-- **listQualifications**
-  - Parameters:
-- **listWorkersWithQualificationType**
-  - Parameters: `QualificationTypeId`
-- **createQualification**
-  - Parameters: `QualificationTypeParams`
-- **associateQualificationsWithWorkers**
-  - Parameters: `AssociateQualificationParams`
-- **listWorkers**
-  - Parameters: 
-- **notifyWorkers**
-  - Parameters: `Subject`, `MessageText`, `SendEmailWorkerIds`
-- **createHITType**
-  - Parameters: `CreateHITTypeParams`, `HITTypeQualificationTypeId`
-- **createHITsWithHITType**
-  - Parameters: `ProjectName`, `NumHITs`, `CreateHITsWithHITTypeParams`
-- **getHITTypes**
-  - Parameters: `HITTypeIds`
-- **expireHITs**
-  - Parameters: `HITIds`
-- **deleteHITs**
-  - Parameters: `HITIds`
-- **listHITs**
-  - Parameters: `Cached`
-- **listHITsForHITType**
-  - Parameters: `HITTypeId=null`, `Cached=true`
-- **listAssignments**
-  - Parameters: `Cached`
-- **listAssignmentsForHITs**
-  - Parameters: `HITIds`
-- **approveAssignments**
-  - Parameters: `AssignmentIds`, `RequesterFeedback`
-- **rejectAssignments**
-  - Parameters: `AssignmentIds`, `RequesterFeedback`
-- **getAssignments**
-  - Parameters: `AssignmentIds`
+#### getCredentials
+- Parameters: None
+
+#### setCredentials
+- Parameters: `AccessKeyId`, `SecretAccessKey`
+
+#### setSandbox
+- Parameters: `Enabled`
+
+#### clearCredentials
+- Parameters: None
+
+#### deleteQualifications
+- Parameters: `QualificationTypeIds`
+
+#### listQualifications
+- Parameters: None
+
+#### listWorkersWithQualificationType
+- Parameters: `QualificationTypeId`
+
+#### createQualification
+- Parameters: `QualificationTypeParams`
+
+#### associateQualificationsWithWorkers
+- Parameters: `AssociateQualificationParams`
+
+#### listWorkers
+- Parameters: None
+
+#### notifyWorkers
+- Parameters: `Subject`, `MessageText`, `SendEmailWorkerIds`
+
+#### createHITType
+- Parameters: `CreateHITTypeParams`, `HITTypeQualificationTypeId`
+
+#### createHITsWithHITType
+- Parameters: `ProjectName`, `NumHITs`, `CreateHITsWithHITTypeParams`
+
+#### getHITTypes
+- Parameters: `HITTypeIds`
+
+#### expireHITs
+- Parameters: `HITIds`
+
+#### deleteHITs
+- Parameters: `HITIds`
+
+#### listHITs
+- Parameters: `Cached`
+
+#### listHITsForHITType
+- Parameters: `HITTypeId=null`, `Cached=true`
+
+#### listAssignments
+- Parameters: `Cached`
+
+#### listAssignmentsForHITs
+- Parameters: `HITIds`
+
+#### approveAssignments
+- Parameters: `AssignmentIds`, `RequesterFeedback`
+
+#### rejectAssignments
+- Parameters: `AssignmentIds`, `RequesterFeedback`
+
+#### getAssignments
+- Parameters: `AssignmentIds`
