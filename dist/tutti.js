@@ -165,6 +165,9 @@ class Duct extends ducts.Duct {
         self.setEventHandler( self.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE,
                               (rid, eid, data) => { self._handleMTurk(self, "createHITsWithHITType", data); } );
 
+        self.setEventHandler( self.EVENT.MTURK_CREATE_TUTTI_HIT_BATCH,
+                              (rid, eid, data) => { self._handleMTurk(self, "createTuttiHITBatch", data); } );
+
         self.setEventHandler( self.EVENT.MTURK_LIST_QUALIFICATIONS,
                               (rid, eid, data) => { self._handleMTurk(self, "listQualifications", data); } );
 
@@ -296,6 +299,7 @@ class MTurkEventListener extends DuctEventListener {
         this.getHITTypes = {};
         this.createHITType = {};
         this.createHITsWithHITType = {};
+        this.createTuttiHITBatch = {};
         this.listQualifications = {};
         this.listHITs = {};
         this.listHITsForHITType = {};
@@ -380,6 +384,10 @@ class MTurkController extends TuttiController {
         this.createHITsWithHITType =
             ( ProjectName, NumHITs, CreateHITsWithHITTypeParams ) => {
                 return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE, this._data({ ProjectName, NumHITs, CreateHITsWithHITTypeParams }) );
+            };
+        this.createTuttiHITBatch =
+            ( ProjectName, NumHITs, HITTypeParams, HITParams ) => {
+                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_TUTTI_HIT_BATCH, this._data({ ProjectName, NumHITs, HITTypeParams, HITParams }) );
             };
         this.getHITTypes =
             ( HITTypeIds ) => {
