@@ -1,6 +1,6 @@
 {
-  "name": "@iflb/tutti",
-  "version": "1.0.6",
+  "name": "@iflb/tutti-client",
+  "version": "0.2.0",
   "description": "",
   "main": "lib/tutti.js",
   "directories": {
@@ -25,7 +25,7 @@
     "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
-    "@iflb/ducts": "^1.0.1",
+    "@iflb/ducts-client": "^0.2.5",
     "buffer": "^5.7.1"
   }
 }
