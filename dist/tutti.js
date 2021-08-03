@@ -28,15 +28,15 @@ module.exports = __webpack_require__(/*! ./lib/tutti */ "./lib/tutti.js");
   \**********************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-const ducts = __webpack_require__(/*! @iflb/ducts */ "./node_modules/@iflb/ducts/lib/ducts.js");
+const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
+const { decode } = MessagePack.initialize(2**22);
+const ducts = __webpack_require__(/*! @iflb/ducts-client */ "./node_modules/@iflb/ducts-client/lib/ducts.js");
 const Buffer = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js").Buffer;
 
 class Duct extends ducts.Duct {
 
     constructor() {
         super();
-
-        this.onOpenHandlers = [];
 
         this.controllers = {
             resource: new ResourceController(this),
@@ -50,32 +50,25 @@ class Duct extends ducts.Duct {
         this.send = 
             (rid, eid, data) => {
                 if(this.logger) this.logger.addSent(rid, eid, data);
-                return super._send(this, rid, eid, data);
+                return super.send(this, rid, eid, data);
             }
 
-        this.addOnOpenHandler = (handler) => { this.onOpenHandlers.push(handler); };
     }
 
     _onopen(self, event) {
         super._onopen( self, event );
         self.setEventHandler( self.EVENT.APP_WSD, (rid, eid, data) => { self.APP_WSD = data } );
-        self.send( self.next_rid(), self.EVENT.APP_WSD, null );
+        self.send( self.nextRid(), self.EVENT.APP_WSD, null );
 
-        this.setupHandlers(this);
-        for(const handler of this.onOpenHandlers)  handler();
+        self.setupHandlers();
     }
 
     _onmessage(self, event) {
-        const [rid, eid, data] = self.decode(Buffer.from(event.source.data));
+        const [rid, eid, data] = decode(Buffer.from(event.source.data));
         if(self.logger) self.logger.addReceived(rid, eid, data);
         super._onmessage( self, event );
     }
 
-    invokeOrWaitForOpen(f) {
-        if(this.state==ducts.State.OPEN_CONNECTED) f();
-        else this.addOnOpenHandler(f);
-    }
- 
     // FIXME:: needs a protocol
     _handleMTurk(self, name, data) {
         try {
@@ -107,113 +100,113 @@ class Duct extends ducts.Duct {
         self.setEventHandler( self.EVENT.EVENT_HISTORY,
                               (rid, eid, data) => {
                                   // FIXME
-                                  if("AllHistory" in data["Contents"])  self._handleResource(self, "getEventHistory", data);
-                                  else if("History" in data["Contents"])  self._handleResource(self, "setEventHistory", data);
+                                  if("AllHistory" in data["Contents"])  self._handleResource("getEventHistory", data);
+                                  else if("History" in data["Contents"])  self._handleResource("setEventHistory", data);
                               });
         self.setEventHandler( self.EVENT.LIST_PROJECTS,
-                              (rid, eid, data) => { self._handleResource(self, "listProjects", data); } );
+                              (rid, eid, data) => { self._handleResource("listProjects", data); } );
         self.setEventHandler( self.EVENT.CREATE_PROJECT,
-                              (rid, eid, data) => { self._handleResource(self, "createProject", data); } );
+                              (rid, eid, data) => { self._handleResource("createProject", data); } );
         self.setEventHandler( self.EVENT.GET_PROJECT_SCHEME,
-                              (rid, eid, data) => { self._handleResource(self, "getProjectScheme", data); } );
+                              (rid, eid, data) => { self._handleResource("getProjectScheme", data); } );
         self.setEventHandler( self.EVENT.CREATE_TEMPLATES,
-                              (rid, eid, data) => { self._handleResource(self, "createTemplates", data); } );
+                              (rid, eid, data) => { self._handleResource("createTemplates", data); } );
         self.setEventHandler( self.EVENT.LIST_TEMPLATE_PRESETS,
-                              (rid, eid, data) => { self._handleResource(self, "listTemplatePresets", data); } );
+                              (rid, eid, data) => { self._handleResource("listTemplatePresets", data); } );
         self.setEventHandler( self.EVENT.LIST_TEMPLATES,
-                              (rid, eid, data) => { self._handleResource(self, "listTemplates", data); } );
+                              (rid, eid, data) => { self._handleResource("listTemplates", data); } );
         self.setEventHandler( self.EVENT.GET_RESPONSES_FOR_TEMPLATE,
-                              (rid, eid, data) => { self._handleResource(self, "getResponsesForTemplate", data); } );
+                              (rid, eid, data) => { self._handleResource("getResponsesForTemplate", data); } );
         self.setEventHandler( self.EVENT.GET_RESPONSES_FOR_NANOTASK,
-                              (rid, eid, data) => { self._handleResource(self, "getResponsesForNanotask", data); } );
+                              (rid, eid, data) => { self._handleResource("getResponsesForNanotask", data); } );
         self.setEventHandler( self.EVENT.GET_NANOTASKS,
-                              (rid, eid, data) => { self._handleResource(self, "getNanotasks", data); } );
+                              (rid, eid, data) => { self._handleResource("getNanotasks", data); } );
         self.setEventHandler( self.EVENT.UPLOAD_NANOTASKS,
-                              (rid, eid, data) => { self._handleResource(self, "uploadNanotasks", data); } );
+                              (rid, eid, data) => { self._handleResource("uploadNanotasks", data); } );
         self.setEventHandler( self.EVENT.DELETE_NANOTASKS,
-                              (rid, eid, data) => { self._handleResource(self, "deleteNanotasks", data); } );
+                              (rid, eid, data) => { self._handleResource("deleteNanotasks", data); } );
         self.setEventHandler( self.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE,
-                              (rid, eid, data) => { self._handleResource(self, "updateNanotaskNumAssignable", data); } );
+                              (rid, eid, data) => { self._handleResource("updateNanotaskNumAssignable", data); } );
         self.setEventHandler( self.EVENT.SESSION,
                               (rid, eid, data) => {
-                                  if(data["Contents"]["Command"]=="Create") self._handleResource(self, "createSession", data);
-                                  else if(data["Contents"]["Command"]=="Get") self._handleResource(self, "getTemplateNode", data);
-                                  else if(data["Contents"]["Command"]=="SetResponse") self._handleResource(self, "setResponse", data);
+                                  if(data["Contents"]["Command"]=="Create") self._handleResource("createSession", data);
+                                  else if(data["Contents"]["Command"]=="Get") self._handleResource("getTemplateNode", data);
+                                  else if(data["Contents"]["Command"]=="SetResponse") self._handleResource("setResponse", data);
                               } );
         self.setEventHandler( self.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT,
-                              (rid, eid, data) => { self._handleResource(self, "checkPlatformWorkerIdExistenceForProject", data); } );
+                              (rid, eid, data) => { self._handleResource("checkPlatformWorkerIdExistenceForProject", data); } );
 
 
         self.setEventHandler( self.EVENT.MTURK_GET_CREDENTIALS,
-                              (rid, eid, data) => { self._handleMTurk(self, "getCredentials", data); } );
+                              (rid, eid, data) => { self._handleMTurk("getCredentials", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_SET_CREDENTIALS,
-                              (rid, eid, data) => { self._handleMTurk(self, "setCredentials", data); } );
+                              (rid, eid, data) => { self._handleMTurk("setCredentials", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_CLEAR_CREDENTIALS,
-                              (rid, eid, data) => { self._handleMTurk(self, "clearCredentials", data); } );
+                              (rid, eid, data) => { self._handleMTurk("clearCredentials", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_SET_SANDBOX,
-                              (rid, eid, data) => { self._handleMTurk(self, "setSandbox", data); } );
+                              (rid, eid, data) => { self._handleMTurk("setSandbox", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_GET_HIT_TYPES,
-                              (rid, eid, data) => { self._handleMTurk(self, "getHITTypes", data); } );
+                              (rid, eid, data) => { self._handleMTurk("getHITTypes", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_CREATE_HIT_TYPE,
-                              (rid, eid, data) => { self._handleMTurk(self, "createHITType", data); } );
+                              (rid, eid, data) => { self._handleMTurk("createHITType", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE,
-                              (rid, eid, data) => { self._handleMTurk(self, "createHITsWithHITType", data); } );
+                              (rid, eid, data) => { self._handleMTurk("createHITsWithHITType", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_CREATE_TUTTI_HIT_BATCH,
-                              (rid, eid, data) => { self._handleMTurk(self, "createTuttiHITBatch", data); } );
+                              (rid, eid, data) => { self._handleMTurk("createTuttiHITBatch", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_LIST_QUALIFICATIONS,
-                              (rid, eid, data) => { self._handleMTurk(self, "listQualifications", data); } );
+                              (rid, eid, data) => { self._handleMTurk("listQualifications", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_LIST_HITS,
-                              (rid, eid, data) => { self._handleMTurk(self, "listHITs", data); } );
+                              (rid, eid, data) => { self._handleMTurk("listHITs", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_LIST_HITS_FOR_HIT_TYPE,
-                              (rid, eid, data) => { self._handleMTurk(self, "listHITsForHITType", data); } );
+                              (rid, eid, data) => { self._handleMTurk("listHITsForHITType", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_EXPIRE_HITS,
-                              (rid, eid, data) => { self._handleMTurk(self, "expireHITs", data); } );
+                              (rid, eid, data) => { self._handleMTurk("expireHITs", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_DELETE_HITS,
-                              (rid, eid, data) => { self._handleMTurk(self, "deleteHITs", data); } );
+                              (rid, eid, data) => { self._handleMTurk("deleteHITs", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_CREATE_QUALIFICATION,
-                              (rid, eid, data) => { self._handleMTurk(self, "createQualification", data); } );
+                              (rid, eid, data) => { self._handleMTurk("createQualification", data); } );
 
         self.setEventHandler( self.EVENT.LIST_WORKERS,
                               (rid, eid, data) => {
                                   // FIXME
-                                  if(data["Contents"]["Platform"]=="MTurk") self._handleMTurk(self, "listWorkers", data);
-                                  else self._handleResource(self, "listWorkers", data);
+                                  if(data["Contents"]["Platform"]=="MTurk") self._handleMTurk("listWorkers", data);
+                                  else self._handleResource("listWorkers", data);
                               });
 
         self.setEventHandler( self.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE,
-                              (rid, eid, data) => { self._handleMTurk(self, "listWorkersWithQualificationType", data); } );
+                              (rid, eid, data) => { self._handleMTurk("listWorkersWithQualificationType", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_DELETE_QUALIFICATIONS,
-                              (rid, eid, data) => { self._handleMTurk(self, "deleteQualifications", data); } );
+                              (rid, eid, data) => { self._handleMTurk("deleteQualifications", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_NOTIFY_WORKERS,
-                              (rid, eid, data) => { self._handleMTurk(self, "notifyWorkers", data); } );
+                              (rid, eid, data) => { self._handleMTurk("notifyWorkers", data); } );
         self.setEventHandler( self.EVENT.MTURK_ASSOCIATE_QUALIFICATIONS_WITH_WORKERS,
-                              (rid, eid, data) => { self._handleMTurk(self, "associateQualificationsWithWorkers", data); } );
+                              (rid, eid, data) => { self._handleMTurk("associateQualificationsWithWorkers", data); } );
 
         self.setEventHandler( self.EVENT.MTURK_LIST_ASSIGNMENTS,
-                              (rid, eid, data) => { self._handleMTurk(self, "listAssignments", data); } );
+                              (rid, eid, data) => { self._handleMTurk("listAssignments", data); } );
         self.setEventHandler( self.EVENT.MTURK_LIST_ASSIGNMENTS_FOR_HITS,
-                              (rid, eid, data) => { self._handleMTurk(self, "listAssignmentsForHITs", data); } );
+                              (rid, eid, data) => { self._handleMTurk("listAssignmentsForHITs", data); } );
         self.setEventHandler( self.EVENT.MTURK_APPROVE_ASSIGNMENTS,
-                              (rid, eid, data) => { self._handleMTurk(self, "approveAssignments", data); } );
+                              (rid, eid, data) => { self._handleMTurk("approveAssignments", data); } );
         self.setEventHandler( self.EVENT.MTURK_REJECT_ASSIGNMENTS,
-                              (rid, eid, data) => { self._handleMTurk(self, "rejectAssignments", data); } );
+                              (rid, eid, data) => { self._handleMTurk("rejectAssignments", data); } );
         self.setEventHandler( self.EVENT.MTURK_GET_ASSIGNMENTS,
-                              (rid, eid, data) => { self._handleMTurk(self, "getAssignments", data); } );
+                              (rid, eid, data) => { self._handleMTurk("getAssignments", data); } );
     }
 }
 
@@ -341,100 +334,100 @@ class MTurkController extends TuttiController {
 
         this.getCredentials =
             (  ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_GET_CREDENTIALS );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_GET_CREDENTIALS );
             };
         this.setCredentials =
             ( AccessKeyId, SecretAccessKey ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_SET_CREDENTIALS, this._data({ AccessKeyId, SecretAccessKey }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_SET_CREDENTIALS, this._data({ AccessKeyId, SecretAccessKey }) );
             };
         this.setSandbox =
             ( Enabled ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_SET_SANDBOX, this._data({ Enabled }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_SET_SANDBOX, this._data({ Enabled }) );
             };
         this.clearCredentials =
             (  ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CLEAR_CREDENTIALS );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_CLEAR_CREDENTIALS );
             };
 
         this.deleteQualifications =
             ( QualificationTypeIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_DELETE_QUALIFICATIONS, this._data({ QualificationTypeIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_DELETE_QUALIFICATIONS, this._data({ QualificationTypeIds }) );
             };
         this.listQualifications =
             ( TuttiQuals ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_QUALIFICATIONS, this._data({ TuttiQuals }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_LIST_QUALIFICATIONS, this._data({ TuttiQuals }) );
             };
         this.listWorkersWithQualificationType =
             ( QualificationTypeId ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE, this._data({ QualificationTypeId }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_LIST_WORKERS_WITH_QUALIFICATION_TYPE, this._data({ QualificationTypeId }) );
             };
         this.createQualification =
             ( QualificationTypeParams ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_QUALIFICATION, QualificationTypeParams );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_CREATE_QUALIFICATION, QualificationTypeParams );
             };
         this.associateQualificationsWithWorkers =
             ( AssociateQualificationParams ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_ASSOCIATE_QUALIFICATIONS_WITH_WORKERS, AssociateQualificationParams );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_ASSOCIATE_QUALIFICATIONS_WITH_WORKERS, AssociateQualificationParams );
             };
         this.listWorkers =
             (  ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.LIST_WORKERS, { Platform: "MTurk" } );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.LIST_WORKERS, { Platform: "MTurk" } );
             };
         this.notifyWorkers =
             ( Subject, MessageText, SendEmailWorkerIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_NOTIFY_WORKERS, this._data({ Subject, MessageText, SendEmailWorkerIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_NOTIFY_WORKERS, this._data({ Subject, MessageText, SendEmailWorkerIds }) );
             };
         this.createHITType =
             ( CreateHITTypeParams, HITTypeQualificationTypeId ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_HIT_TYPE, this._data({ CreateHITTypeParams, HITTypeQualificationTypeId }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_CREATE_HIT_TYPE, this._data({ CreateHITTypeParams, HITTypeQualificationTypeId }) );
             };
         this.createHITsWithHITType =
             ( ProjectName, NumHITs, CreateHITsWithHITTypeParams ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE, this._data({ ProjectName, NumHITs, CreateHITsWithHITTypeParams }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_CREATE_HITS_WITH_HIT_TYPE, this._data({ ProjectName, NumHITs, CreateHITsWithHITTypeParams }) );
             };
         this.createTuttiHITBatch =
             ( ProjectName, NumHITs, HITTypeParams, HITParams ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_CREATE_TUTTI_HIT_BATCH, this._data({ ProjectName, NumHITs, HITTypeParams, HITParams }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_CREATE_TUTTI_HIT_BATCH, this._data({ ProjectName, NumHITs, HITTypeParams, HITParams }) );
             };
         this.getHITTypes =
             ( HITTypeIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_GET_HIT_TYPES, this._data({ HITTypeIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_GET_HIT_TYPES, this._data({ HITTypeIds }) );
             };
         this.expireHITs =
             ( HITIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_EXPIRE_HITS, this._data({ HITIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_EXPIRE_HITS, this._data({ HITIds }) );
             };
         this.deleteHITs =
             ( HITIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_DELETE_HITS, this._data({ HITIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_DELETE_HITS, this._data({ HITIds }) );
             };
         this.listHITs =
             ( Cached ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_HITS, this._data({ Cached }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_LIST_HITS, this._data({ Cached }) );
             };
         this.listHITsForHITType =
             ( HITTypeId, Cached ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_HITS_FOR_HIT_TYPE, this._data({ HITTypeId, Cached }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_LIST_HITS_FOR_HIT_TYPE, this._data({ HITTypeId, Cached }) );
             };
         this.listAssignments =
             ( Cached ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_ASSIGNMENTS, this._data({ Cached }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_LIST_ASSIGNMENTS, this._data({ Cached }) );
             };
         this.listAssignmentsForHITs =
             ( HITIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_LIST_ASSIGNMENTS_FOR_HITS, this._data({ HITIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_LIST_ASSIGNMENTS_FOR_HITS, this._data({ HITIds }) );
             };
         this.approveAssignments =
             ( AssignmentIds, RequesterFeedback ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_APPROVE_ASSIGNMENTS, this._data({ AssignmentIds, RequesterFeedback }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_APPROVE_ASSIGNMENTS, this._data({ AssignmentIds, RequesterFeedback }) );
             };
         this.rejectAssignments =
             ( AssignmentIds, RequesterFeedback ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_REJECT_ASSIGNMENTS, this._data({ AssignmentIds, RequesterFeedback }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_REJECT_ASSIGNMENTS, this._data({ AssignmentIds, RequesterFeedback }) );
             };
         this.getAssignments =
             ( AssignmentIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.MTURK_GET_ASSIGNMENTS, this._data({ AssignmentIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.MTURK_GET_ASSIGNMENTS, this._data({ AssignmentIds }) );
             };
     }
 }
@@ -445,76 +438,76 @@ class ResourceController extends TuttiController {
 
         this.getEventHistory =
             () => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY, null );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.EVENT_HISTORY, null );
             };
         this.setEventHistory =
             ( eid, query ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.EVENT_HISTORY, [eid, query] );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.EVENT_HISTORY, [eid, query] );
             };
 
         this.listProjects =
             () => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.LIST_PROJECTS );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.LIST_PROJECTS );
             };
         this.createProject =
             ( ProjectName ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.CREATE_PROJECT, this._data({ ProjectName }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.CREATE_PROJECT, this._data({ ProjectName }) );
             };
         this.listTemplates =
             ( ProjectName ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.LIST_TEMPLATES, this._data({ ProjectName }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.LIST_TEMPLATES, this._data({ ProjectName }) );
             };
         this.getResponsesForTemplate =
             ( ProjectName, TemplateName ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_RESPONSES_FOR_TEMPLATE, this._data({ ProjectName, TemplateName }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.GET_RESPONSES_FOR_TEMPLATE, this._data({ ProjectName, TemplateName }) );
             };
         this.getResponsesForNanotask =
             ( NanotaskId ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_RESPONSES_FOR_NANOTASK, this._data({ NanotaskId }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.GET_RESPONSES_FOR_NANOTASK, this._data({ NanotaskId }) );
             };
         this.createTemplates =
             ( ProjectName, TemplateNames, PresetEnvName, PresetTemplateName ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.CREATE_TEMPLATES, this._data({ ProjectName, TemplateNames, PresetEnvName, PresetTemplateName }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.CREATE_TEMPLATES, this._data({ ProjectName, TemplateNames, PresetEnvName, PresetTemplateName }) );
             };
         this.listTemplatePresets =
             () => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.LIST_TEMPLATE_PRESETS );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.LIST_TEMPLATE_PRESETS );
             };
         this.getProjectScheme =
             ( ProjectName, Cached ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_PROJECT_SCHEME, this._data({ ProjectName, Cached }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.GET_PROJECT_SCHEME, this._data({ ProjectName, Cached }) );
             };
         this.getNanotasks =
             ( ProjectName, TemplateName ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.GET_NANOTASKS, this._data({ ProjectName, TemplateName }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.GET_NANOTASKS, this._data({ ProjectName, TemplateName }) );
             };
         this.deleteNanotasks =
             ( ProjectName, TemplateName, NanotaskIds ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.DELETE_NANOTASKS, this._data({ ProjectName, TemplateName, NanotaskIds }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.DELETE_NANOTASKS, this._data({ ProjectName, TemplateName, NanotaskIds }) );
             };
         this.updateNanotaskNumAssignable =
             ( ProjectName, TemplateName, NanotaskId, NumAssignable ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE, this._data({ ProjectName, TemplateName, NanotaskId, NumAssignable }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.UPDATE_NANOTASK_NUM_ASSIGNABLE, this._data({ ProjectName, TemplateName, NanotaskId, NumAssignable }) );
             };
         this.uploadNanotasks =
             ( ProjectName, TemplateName, Nanotasks, NumAssignable, Priority, TagName ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.UPLOAD_NANOTASKS, this._data({ ProjectName, TemplateName, Nanotasks, NumAssignable, Priority, TagName }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.UPLOAD_NANOTASKS, this._data({ ProjectName, TemplateName, Nanotasks, NumAssignable, Priority, TagName }) );
             };
         this.getTemplateNode =
             ( Target, WorkSessionId, NodeSessionId ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, this._data({ Command: "Get", Target, WorkSessionId, NodeSessionId }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.SESSION, this._data({ Command: "Get", Target, WorkSessionId, NodeSessionId }) );
             };
         this.createSession =
             ( ProjectName, PlatformWorkerId, ClientToken, Platform ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, this._data({ Command: "Create", ProjectName, PlatformWorkerId, ClientToken, Platform }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.SESSION, this._data({ Command: "Create", ProjectName, PlatformWorkerId, ClientToken, Platform }) );
             };
         this.setResponse =
             ( WorkSessionId, NodeSessionId, Answers ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.SESSION, this._data({ Command: "SetResponse", WorkSessionId, NodeSessionId, Answers }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.SESSION, this._data({ Command: "SetResponse", WorkSessionId, NodeSessionId, Answers }) );
             };
         this.checkPlatformWorkerIdExistenceForProject =
             ( ProjectName, Platform, PlatformWorkerId ) => {
-                return this._duct.send( this._duct.next_rid(), this._duct.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT, this._data({ ProjectName, Platform, PlatformWorkerId }) );
+                return this._duct.send( this._duct.nextRid(), this._duct.EVENT.CHECK_PLATFORM_WORKER_ID_EXISTENCE_FOR_PROJECT, this._data({ ProjectName, Platform, PlatformWorkerId }) );
             };
                 
     }
@@ -534,10 +527,10 @@ module.exports = {
 
 /***/ }),
 
-/***/ "./node_modules/@iflb/ducts/lib/ducts.js":
-/*!***********************************************!*\
-  !*** ./node_modules/@iflb/ducts/lib/ducts.js ***!
-  \***********************************************/
+/***/ "./node_modules/@iflb/ducts-client/lib/ducts.js":
+/*!******************************************************!*\
+  !*** ./node_modules/@iflb/ducts-client/lib/ducts.js ***!
+  \******************************************************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
@@ -546,42 +539,42 @@ const WebSocket = __webpack_require__(/*! websocket */ "./node_modules/websocket
 const fetch = __webpack_require__(/*! node-fetch */ "./node_modules/node-fetch/browser.js");
 const getRandomValues = __webpack_require__(/*! get-random-values */ "./node_modules/get-random-values/index.js");
 const Buffer = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js").Buffer;
+const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "./node_modules/@iflb/lib/lib/lib.js");
 
 //https://github.com/necojackarc/extensible-custom-error/blob/master/src/index.js
 class DuctError extends Error {
-    
-    constructor(message, error=null, ...args) {
-	super(message, error, ...args);
 
-	// Align with Object.getOwnPropertyDescriptor(Error.prototype, 'name')
-	Object.defineProperty(this, 'name', {
-	    configurable: true,
-	    enumerable: false,
-	    value: this.constructor.name,
-	    writable: true,
-	});
+    constructor(message, error = null, ...args) {
+        super(message, error, ...args);
 
-	// Helper function to merge stack traces
-	const merge =
-	      (stackTraceToMerge, baseStackTrace) => {
-		  const entriesToMerge = stackTraceToMerge.split('\n');
-		  const baseEntries = baseStackTrace.split('\n');
-		  const newEntries = [];
-		  entriesToMerge.forEach((entry) => {
-		      if (baseEntries.includes(entry)) {
-			  return;
-		      }
-		      newEntries.push(entry);
-		  });
-		  return [...newEntries, ...baseEntries].join('\n');
-	      };
-	if (Error.captureStackTrace) {
-	    Error.captureStackTrace(this, this.constructor);
-	    this.stack = error ? merge(this.stack, error.stack) : this.stack;
-	}
-	
+        // Align with Object.getOwnPropertyDescriptor(Error.prototype, 'name')
+        Object.defineProperty(this, 'name', {
+            configurable: true,
+            enumerable: false,
+            value: this.constructor.name,
+            writable: true,
+        });
+
+        // Helper function to merge stack traces
+        const merge = (stackTraceToMerge, baseStackTrace) => {
+            const entriesToMerge = stackTraceToMerge.split('\n');
+            const baseEntries = baseStackTrace.split('\n');
+            const newEntries = [];
+            entriesToMerge.forEach((entry) => {
+                if (baseEntries.includes(entry)) {
+                    return;
+                }
+                newEntries.push(entry);
+            });
+            return [...newEntries, ...baseEntries].join('\n');
+        };
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, this.constructor);
+            this.stack = error ? merge(this.stack, error.stack) : this.stack;
+        }
+
     }
-    
+
 };
 
 class DuctEvent {
@@ -589,12 +582,45 @@ class DuctEvent {
     }
 };
 
+class DuctLoopResponseQueue {
+    constructor() {
+        this._pushedValue = [];
+        this._promiseContext = [];
+    }
+
+    dequeue() {
+        return new Promise((resolve, reject) => {
+            if (this._pushedValue.length > 0) {
+                let { isErrorOccured, data } = this._pushedValue.shift();
+                if (isErrorOccured) {
+                    reject(data);
+                } else {
+                    resolve(data);
+                }
+            } else {
+                this._promiseContext.push(new DuctPromiseContext(resolve, reject));
+            }
+        });
+    }
+
+    enqueue(isErrorOccured, data) {
+        if (this._promiseContext.length > 0) {
+            this._promiseContext.shift().resolve(data);
+        } else {
+            this._pushedValue.push({
+                isErrorOccured: isErrorOccured,
+                data: data,
+            });
+        }
+    }
+};
+
 class DuctConnectionEvent extends DuctEvent {
 
     constructor(state, source) {
-	super();
-	this.state = state;
-	this.source = source;
+        super();
+        this.state = state;
+        this.source = source;
     }
 
 };
@@ -602,234 +628,322 @@ class DuctConnectionEvent extends DuctEvent {
 class DuctMessageEvent extends DuctEvent {
 
     constructor(rid, eid, data) {
-	super();
-	this.rid = rid;
-	this.eid = eid;
-	this.data = data;
+        super();
+        this.rid = rid;
+        this.eid = eid;
+        this.data = data;
     }
 
 };
 
 const State = Object.freeze({
-    CLOSE : -1
-    , OPEN_CONNECTING : WebSocket.CONNECTING 
-    , OPEN_CONNECTED : WebSocket.OPEN 
-    , OPEN_CLOSING : WebSocket.CONNECTING 
-    , OPEN_CLOSED : WebSocket.CLOSED 
+    CLOSE : -1,
+    OPEN_CONNECTING : WebSocket.CONNECTING,
+    OPEN_CONNECTED : WebSocket.OPEN,
+    OPEN_CLOSING : WebSocket.CONNECTING,
+    OPEN_CLOSED : WebSocket.CLOSED,
 });
 
 class DuctEventListener {
-    
+
     constructor() {
-	this.on =
-	    (names, func) => {
-		for(let name of (names instanceof Array) ? names : [names]) {
-		    if (!(name in this)) {
-			throw new ReferenceError('['+name+'] in '+this.constructor.name);
-		    } 
-		    this[name] = func;
-		}
-		
-	    };
-	
+        this.on =
+            (names, func) => {
+            for(let name of (names instanceof Array) ? names : [names]) {
+                if (!(name in this)) {
+                    throw new ReferenceError('[' + name + '] in ' + this.constructor.name);
+                }
+                this[name] = func;
+            }
+
+            };
+
     }
 };
+
+class DuctPromiseContext {
+    constructor(resolve, reject) {
+        this.resolve = resolve;
+        this.reject = reject;
+    }
+}
 
 class ConnectionEventListener extends DuctEventListener {
     onopen(event){}
     onclose(event){}
     onerror(event){}
     onmessage(event){}
-    
+
 };
 
-class Duct {
-    
-    constructor() {
-	this.WSD = null;
-	this.EVENT = null;
-	this.encode = null;
-	this.decode = null;
-	
-    this.next_rid = 
-        () => {
-            let next_id = new Date().getTime();
-            if (next_id <= this.last_rid) {
-                next_id = this.last_rid + 1;
-            }
-            this.last_rid = next_id;
-            return next_id;
-        };
-	this.open =
-	    (wsd_url, uuid = null, params = {}) => {return this._open(this, wsd_url, uuid, params);};
-	this.reconnect =
-	    () => {return this._reconnect(this);};
-	this.send = 
-	    (request_id, event_id, data) => {return this._send(this, request_id, event_id, data)};
-	this.close =
-	    () => {return this._close(this);};
+class Duct extends ThisBound {
 
-	this._connection_listener = new ConnectionEventListener();
-	
-	this._event_handler = {};
-	this.setEventHandler = 
-	    (event_id, handler) => {this._event_handler[event_id] = handler;};
-	this.catchall_event_handler = (rid, eid, data) => {};
-	this.uncaught_event_handler = (rid, eid, data) => {};
-	this.event_error_handler = (rid, eid, data, error) => {};
-	
+    constructor() {
+        super();
+        this.WSD = null;
+        this.EVENT = null;
+        this.nextRid = () => {
+            let nextRid = new Date().getTime();
+            if (nextRid <= this.lastRid) {
+                nextRid = this.lastRid + 1;
+            }
+            this.lastRid = nextRid;
+            return nextRid;
+        };
+        this._connectionListener = new ConnectionEventListener();
+        this._eventHandler = {};
+        this.catchallEventHandler = (rid, eid, data) => {};
+        this.uncaughtEventHandler = (rid, eid, data) => {};
+        this.eventErrorHandler = (rid, eid, data, error) => {};
+        this._onopenHandlers = [];
+        this._waitingMessagePromiseContext = {};
+        this._waitingClosedPromiseContext = [];
+        this._chainedPromiseContextForLoop = {};
+        this._loopQueues = {};
+    }
+
+    setEventHandler(self, eventId, handler = null) {
+        if (handler) {
+            self._eventHandler[eventId] = handler;
+        } else {
+            delete self._eventHandler[eventId];
+        }
+    }
+
+    addOnopenHandler(self, handler) {
+        self._onopenHandlers.push(handler);
+    }
+
+    invokeOnOpen(self, handler) {
+        if (self.state === State.OPEN_CONNECTED) handler();
+        else self.addOnopenHandler(handler);
     }
 
     get state() {
-	if (this._ws) {
-	    return this._ws.readyState;
-	} else {
-	    return State.CLOSE;
-	}
+        if (this._ws) {
+            return this._ws.readyState;
+        } else {
+            return State.CLOSE;
+        }
     }
 
-    _reconnect(self, wsd) {
-	if (wsd != null) {
-	    self.WSD = wsd;
-	    self.EVENT = self.WSD.EVENT;
-	}
-	return new Promise(function(resolve, reject) {
-	    if (self._ws) {
-		resolve(self);
-		return;
-	    }
-	    let ws = new WebSocket(self.WSD.websocket_url_reconnect);
-	    ws.binaryType = 'arraybuffer';
-	    ws.onopen = 
-		(event) => {
-		    ws.onerror =
-			(event) => {self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));};
-		    ws.onclose =
-			(event) => {self._connection_listener.onclose(new DuctConnectionEvent('onclose', event));};
-		    ws.onmessage = 
-			(event) => {self._onmessage(self, new DuctConnectionEvent('onmessage', event));};
-		    self._ws = ws;
-		    self._onreconnect(self, event);
-		    self._connection_listener.onopen(new DuctConnectionEvent('onopen', event));
-		    resolve(self);
-		};
-	    ws.onerror =
-		(event) => {
-		    self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));
-		    reject(event);
-		};
-	});
+    reconnect(self) {
+        return new Promise(function(resolve, reject) {
+            if (self._ws) {
+                resolve(self);
+                return;
+            }
+            let ws = new WebSocket(self.WSD['websocket_url_reconnect']);
+            ws.binaryType = 'arraybuffer';
+            ws.onopen = (event) => {
+                ws.onerror = (event) => {
+                    self._connectionListener.onerror(new DuctConnectionEvent('onerror', event));
+                };
+                ws.onclose = (event) => {
+                    self._connectionListener.onclose(new DuctConnectionEvent('onclose', event));
+                };
+                ws.onmessage = (event) => {
+                    self._onmessage(new DuctConnectionEvent('onmessage', event));
+                };
+                self._ws = ws;
+                self._onreconnect(event);
+                self._connectionListener.onopen(new DuctConnectionEvent('onopen', event));
+                resolve(self);
+            };
+            ws.onerror = (event) => {
+                self._connectionListener.onerror(new DuctConnectionEvent('onerror', event));
+                reject(event);
+            };
+        });
     }
-    
-    _open(self, wsd_url, uuid, params) {
-	return new Promise(function(resolve, reject) {
-	    if (self._ws) {
-		resolve(self);
-		return;
-	    }
-	    let query = uuid != null ? uuid : '?uuid='+([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-	    for (let [key, value] of Object.entries(params)) {
-		query += '&'+key+'='+value;
-	    }
-	    fetch(wsd_url + query, { headers: { "User-Agent": "" } })
-		.then( response => {
-		    return response.json();
-		}).then( wsd => {
-		    //console.log(wsd);
-		    self.WSD = wsd;
-		    self.EVENT = self.WSD.EVENT;
-		    //console.log(self.WSD.websocket_url);
-		    let ws = new WebSocket(self.WSD.websocket_url);
-		    ws.binaryType = 'arraybuffer';
-		    ws.onopen = 
-			(event) => {
-			    ws.onerror =
-				(event) => {self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));};
-			    ws.onclose =
-				(event) => {self._connection_listener.onclose(new DuctConnectionEvent('onclose', event));};
-			    ws.onmessage = 
-				(event) => {self._onmessage(self, new DuctConnectionEvent('onmessage', event));};
-			    self._ws = ws;
-			    self._onopen(self, event);
-			    self._connection_listener.onopen(new DuctConnectionEvent('onopen', event));
-			    resolve(self);
-			};
-		    ws.onerror =
-			(event) => {
-			    self._connection_listener.onerror(new DuctConnectionEvent('onerror', event));
-			    reject(event);
-			};
-		}).catch( (error) => {
-		    //console.error(error);
-		    self._connection_listener.onerror(new DuctConnectionEvent('onerror', error));
-		    reject(error);
-		});
-	});
+
+    open(self, wsdUrl, uuid = null, params = {}) {
+        return new Promise(function(resolve, reject) {
+            if (self._ws) {
+                resolve(self);
+                return;
+            }
+            let query = uuid != null ? uuid : '?uuid=' + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+            for (let [key, value] of Object.entries(params)) {
+                query += '&' + key + '=' + value;
+            }
+            fetch(wsdUrl + query, { headers: { 'User-Agent': '' } })
+                .then(response => { return response.json(); })
+                .then(wsd => {
+                    //console.log(wsd);
+                    self.WSD = wsd;
+                    self.EVENT = self.WSD.EVENT;
+                    //console.log(self.WSD.websocket_url);
+                    let ws = new WebSocket(self.WSD['websocket_url']);
+                    ws.binaryType = 'arraybuffer';
+                    ws.onopen = (event) => {
+                        ws.onerror = (event) => {
+                            self._connectionListener.onerror(new DuctConnectionEvent('onerror', event));
+                        };
+                        ws.onclose = (event) => {
+                            self._ws = null;
+                            switch (event.code) {
+                                case 1000:
+                                    for (let promiseContext of self._waitingClosedPromiseContext) {
+                                        promiseContext.resolve(event);
+                                    }
+                                    break;
+                                default:
+                                    for (let promiseContext of self._waitingClosedPromiseContext) {
+                                        promiseContext.reject(event);
+                                    }
+                                    break;
+                            }
+                            self._waitingClosedPromiseContext.splice(0);
+                            self._connectionListener.onclose(new DuctConnectionEvent('onclose', event));
+                        };
+                        ws.onmessage = (event) => {
+                            self._onmessage(new DuctConnectionEvent('onmessage', event));
+                        };
+                        self._ws = ws;
+                        self._onopen(event);
+                        self._connectionListener.onopen(new DuctConnectionEvent('onopen', event));
+                        resolve(self);
+                    };
+                    ws.onerror = (event) => {
+                        self._connectionListener.onerror(new DuctConnectionEvent('onerror', event));
+                        reject(event);
+                    };
+                })
+                .catch((error) => {
+                    //console.error(error);
+                    self._connectionListener.onerror(new DuctConnectionEvent('onerror', error));
+                    reject(error);
+                });
+        });
     }
-    
+
     _onopen(self, event) {
-	self.encode = encode;
-	self.decode = decode;
-	self._send_timestamp = new Date().getTime() / 1000;
-	self.time_offset = 0;
-	self.time_latency = 0;
-	self._time_count = 0;
-	self.setEventHandler(this.EVENT.ALIVE_MONITORING, (rid, eid, data) => {
-	    let client_received = new Date().getTime() / 1000;
-	    let server_sent = data[0];
-	    let server_received = data[1];
-	    let client_sent = this._send_timestamp;
-	    //console.log('t0='+client_sent+', t1='+server_received+', t2='+server_sent+',t3='+client_received);
-	    let new_offset = ((server_received - client_sent) - (client_received - server_sent))/2;
-	    let new_latency = ((client_received - client_sent) - (server_sent - server_received))/2;
-	    this.time_offset = (this.time_offset * this._time_count + new_offset) / (this._time_count + 1);
-	    this.time_latency = (this.time_latency * this._time_count + new_latency) / (this._time_count + 1);
-	    this._time_count += 1;
-	    //console.log('offset='+this.time_offset+', latency='+this.time_latency);
-	});
-	let rid = self.next_rid();
-	let eid = self.EVENT.ALIVE_MONITORING;
-	let value = self._send_timestamp;
-	self.send(rid, eid, value);
-    }
-    
-    _onreconnect(self, event) {
-	//console.log('reconnected');
-    }
-    
-    _send(self, request_id, event_id, data) {
-	const msgpack = self.encode([request_id, event_id, data])
-	self._ws.send(msgpack)
-	return request_id;
-    }
-    
-    _close(self) {
-	try {
-	    if (self._ws) {
-		self._ws.close();
-	    }
-	} finally {
-	    self._ws = null;
-	}
-    }
-    
-    _onmessage(self, event) {
-	try {
-	    self._connection_listener.onmessage(event);
-	    const [rid, eid, data] = self.decode(Buffer.from(event.source.data));
-	    try {
-		self.catchall_event_handler(rid, eid, data);
-		let handle = (eid in self._event_handler) ? self._event_handler[eid] : self.uncaught_event_handler;
-		handle(rid, eid, data);
-	    } catch(error) {
-		self.event_error_handler(rid, eid, data, error);
-	    }
-	}
-	catch (error) {
-	    self.event_error_handler(-1, -1, null, error);
-	}
+        self._sendTimestamp = (new Date().getTime()) / 1000;
+        self.timeOffset = 0;
+        self.timeLatency = 0;
+        self._timeCount = 0;
+        self.setEventHandler(self.EVENT.ALIVE_MONITORING, self._aliveMonitoringHandler);
+        self.setEventHandler(self.EVENT.LOOP_RESPONSE_START, self._loopResponseHandler);
+        self.setEventHandler(self.EVENT.LOOP_RESPONSE_NEXT, self._loopResponseHandler);
+        self.setEventHandler(self.EVENT.LOOP_RESPONSE_END, self._loopResponseEndHandler);
+        self.setEventHandler(self.EVENT.DEVIDED_RESPONSE_APPEND, self._dividedResponseAppendHandler);
+        self.setEventHandler(self.EVENT.DEVIDED_RESPONSE_END, self._dividedResponseEndHandler);
+        let rid = self.nextRid();
+        let eid = self.EVENT.ALIVE_MONITORING;
+        let value = self._sendTimestamp;
+        self.send(rid, eid, value);
+
+        for(const handler of self._onopenHandlers) handler();
     }
 
+    _onreconnect(self, event) {
+        // console.log('reconnected');
+    }
+
+    send(self, requestId, eventId, data) {
+        const msgpack = encode([requestId, eventId, data])
+        self._ws.send(msgpack)
+        return requestId;
+    }
+
+    call(self, eid, data = []) {
+        let rid = self.nextRid();
+        self.send(rid, eid, data);
+        return new Promise((resolve, reject) => {
+            self._waitingMessagePromiseContext[rid] = new DuctPromiseContext(resolve, reject);
+        });
+    }
+
+    close(self) {
+        if (self._ws) {
+            self._ws.close();
+            return new Promise((resolve, reject) => {
+                self._waitingClosedPromiseContext.push(new DuctPromiseContext(resolve, reject));
+            });
+        } else {
+            return new Promise(resolve => resolve);
+        }
+    }
+
+    _onmessage(self, event) {
+        try {
+            self._connectionListener.onmessage(event);
+            const [rid, eid, data] = decode(Buffer.from(event.source.data));
+            try {
+                self.catchallEventHandler(rid, eid, data);
+                let isErrorOccured = (eid < 0);
+                let handle = self._eventHandler[Math.abs(eid)];
+                if (!handle) handle = self.uncaughtEventHandler;
+                let ret = handle(rid, eid, data);
+                let handledData = (ret)? ret : data;
+                let promiseContext = self._waitingMessagePromiseContext[rid];
+                delete self._waitingMessagePromiseContext[rid];
+                if (promiseContext) {
+                    if (isErrorOccured) {
+                        promiseContext.reject(new DuctError(handledData));
+                    } else {
+                        promiseContext.resolve(handledData);
+                    }
+                }
+            } catch(error) {
+                self.eventErrorHandler(rid, eid, data, error);
+            }
+        }
+        catch (error) {
+            self.eventErrorHandler(-1, -1, null, error);
+        }
+    }
+
+    _aliveMonitoringHandler(self, rid, eid, data) {
+        let client_received = (new Date().getTime()) / 1000;
+        let serverSent = data[0];
+        let serverReceived = data[1];
+        let clientSent = self._sendTimestamp;
+        // console.log('t0=' + clientSent + ', t1=' + serverReceived + ', t2=' + serverSent + ',t3=' + client_received);
+        let new_offset = ((serverReceived - clientSent) - (client_received - serverSent)) / 2;
+        let new_latency = ((client_received - clientSent) - (serverSent - serverReceived)) / 2;
+        self.timeOffset = (self.timeOffset * self._timeCount + new_offset) / (self._timeCount + 1);
+        self.timeLatency = (self.timeLatency * self._timeCount + new_latency) / (self._timeCount + 1);
+        self._timeCount += 1;
+        // console.log('offset=' + self.timeOffset + ', latency=' + self.timeLatency);
+    }
+
+    _loopResponseHandler(self, rid, eid, data) {
+        let sourceEid = data[1];
+        let sourceData = data[2];
+        self.catchallEventHandler(rid, sourceEid, sourceData);
+        let isErrorOccured = (sourceEid < 0);
+        let handle = self._eventHandler[Math.abs(sourceEid)];
+        if (!handle) handle = self.uncaughtEventHandler;
+        let ret = handle(rid, sourceEid, sourceData);
+        let handledData = (ret)? ret : sourceData;
+        if (!self._loopQueues[rid]) {
+            self._loopQueues[rid] = new DuctLoopResponseQueue();
+        }
+        let queue = self._loopQueues[rid];
+        queue.enqueue(isErrorOccured, handledData);
+        return queue;
+    }
+
+    _loopResponseEndHandler(self, rid, eid, data) {
+        let sourceEid = data[1];
+        let sourceData = data[2];
+        self.catchallEventHandler(rid, sourceEid, sourceData);
+        let isErrorOccured = (sourceEid < 0);
+        let handle = self._eventHandler[Math.abs(sourceEid)];
+        if (!handle) handle = self.uncaughtEventHandler;
+        handle(rid, sourceEid, sourceData);
+        let queue = self._loopQueues[rid];
+        queue.enqueue(isErrorOccured, null);
+        return sourceEid;
+    }
+
+    _dividedResponseAppendHandler(self, rid, eid, data) {
+    }
+
+    _dividedResponseEndHandler(self, rid, eid, data) {
+    }
 };
 
 module.exports = {
@@ -842,6 +956,46 @@ module.exports = {
     ConnectionEventListener,
     Duct
 };
+
+
+/***/ }),
+
+/***/ "./node_modules/@iflb/lib/lib/lib.js":
+/*!*******************************************!*\
+  !*** ./node_modules/@iflb/lib/lib/lib.js ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+class ThisKeywordProhibitedError extends Error {}
+
+const thisKeywordProhibitedProxyObject = new Proxy(
+    { referenceError: new ThisKeywordProhibitedError('using \'this\' keyword is prohibited. use \'self\'(1st argument) instead.') },
+    {
+        get(target) { throw target.referenceError; },
+        set(target) { throw target.referenceError; },
+    },
+);
+
+class ThisBound {
+    constructor() {
+        let currentPrototype = Object.getPrototypeOf(this);
+        while (currentPrototype !== ThisBound.prototype) {
+            let methodNames = Object.getOwnPropertyNames(currentPrototype);
+            methodNames.splice(methodNames.indexOf('constructor'), 1);
+            for (let methodName of methodNames) {
+                let isThisAlreadyBoundToObject = Object.getOwnPropertyNames(this).includes(methodName);
+                let isPropertyFunction = Object.getOwnPropertyDescriptor(currentPrototype, methodName).value instanceof Function;
+                if (isPropertyFunction && !isThisAlreadyBoundToObject) {
+                    this[methodName] = this[methodName].bind(thisKeywordProhibitedProxyObject, this);
+                }
+            }      
+            currentPrototype = Object.getPrototypeOf(currentPrototype);
+        }
+    }
+}
+
+exports.ThisBound = ThisBound;
+exports.ThisKeywordProhibitedError = ThisKeywordProhibitedError;
 
 
 /***/ }),
