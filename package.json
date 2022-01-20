@@ -1,6 +1,6 @@
 {
   "name": "@iflb/tutti-client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "",
   "main": "lib/tutti.js",
   "directories": {
@@ -11,12 +11,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/iflb/tutti-js.git"
+    "url": "git+https://github.com/iflb/tutti-client-js.git"
   },
   "author": "Susumu Saito",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/iflb/tutti-js/issues"
+    "url": "https://github.com/iflb/tutti-client-js/issues"
   },
   "homepage": "https://iflb.github.io/tutti",
   "devDependencies": {
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@iflb/ducts-client": "^0.2.5",
-    "buffer": "^5.7.1"
+    "buffer": "^5.7.1",
+    "crypto-js": "^4.1.1"
   }
 }
