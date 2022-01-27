@@ -1,219 +1,876 @@
-# JavaScript client SDK for Tutti.ai
-
-## Dependency
-
-- [DUCTS (@iflb/ducts)](https://www.npmjs.com/package/@iflb/ducts)
+# Tutti JavaScript Client API
 
 ## Installation
 
+Node.js:
 ```
-npm install @iflb/tutti
-```
-
-## Importing Module
-
-For web (browser, using CDN):
-
-```html
-<script src="https://unpkg.com/@iflb/tutti/dist/tutti.min.js" />
-<script>
-  var duct = new tutti.TuttiDuct();
-</script>
-```
-
-For Node.js (server):
-
-```javascript
-const tutti = require("@iflb/tutti");
-var duct = new tutti.TuttiDuct();
+npm install @iflb/tutti-client
 ```
 
 ## Usage
 
-For example, to obtain a list of your Tutti projects:
+There are two ways to communicate with Tutti server: **Call** mode and **Send** mode.
 
-```javascript
-var duct = new tutti.TuttiDuct();
+### Call mode
 
-duct.open("https://{your tutti domain}/ducts/wsd").then( (duct) => {   // Open a connection to Tutti server
-  duct.eventListeners.resource.on("listProject", {
-    success: (data) => {
-      // do anything here
-      
-      // data = {
-      //   Contents: {
-      //     ...
-      //   },
-      //   Timestamp: {
-      //     "Requested": int,
-      //     "Responded": int
-      //   }
-      // }
-    },
-    error: (data) => {
-      // handle error here
-      
-      // data = {
-      //   Status: "Error",
-      //   Reason: str,
-      //   Timestamp: {
-      //     "Requested": int,
-      //     "Responded": int
-      //   }
-      // }
-    }
-  };
-  
-  duct.controllers.resource.listProject();
-});
+Calling commands with `await` prefix, the process waits there until the response is sent back, and receives it as a return value.
+
+#### Directions
+```
+const data = await client.<namespace>.<command>({ <args object> }, awaited = true);
+```
+OR equivalently,
+```
+const data = await client.<namespace>.<command>.call(<args object>);
 ```
 
-## Handling Events with Event Listeners
+### Send mode
 
-`duct.eventListeners.{source}.on("{method}", handlers)`
+Calling commands *without* `await` prefix, the process completes as soon as request is sent, and receives it in its listener.
 
-## Executing Methods with Controllers
+#### Directions
+Having defined a listener like below,
+```
+client.<namespace>.on('<command>', {
+    success: (data) => {
+        // do something for successful response...
+    },
+    error: (err) => {
+        // do something for errors...
+    },
+    complete: () => {
+        // do another thing to finalize request...
+    }
+});
+```
+Run:
+```
+client.<namespace>.<command>({ <args object> }, awaited = false);
+```
+OR equivalently,
+```
+client.<namespace>.<command>.send(<args object>);
+```
 
-`duct.controllers.{source}.{method}([ ... args])`
+## Code Examples
 
-## Sources
+Node.js:
+```javascript
+const { TuttiClient } = require('@iflb/tutti-client');
 
-- `resource` ... Tutti-relevant resources (projects, templates, nanotasks, answers, ...)
-- `mturk` ... Amazon Mechanical Turk-relevant operations (wrapper methods for [Python Boto3 MTurk API](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/mturk.html))
+async function main() {
+    let client = new TuttiClient(true);
+    await client.open('http://localhost:8080/ducts/wsd');
 
-## Methods
+    // Sign in with an account first
+    await client.resource.signIn({ user_name: 'admin', password: 'admin' })
+    // Get a list of created projects
+    const projects = await client.resource.listProjects();
+    // List templates for the first project
+    const templates = await client.resource.listTemplates({ project_name: projects[0].name });
+}
 
-### Resource
+main();
+```
 
-#### getEventHistory
-- Parameters: None
-- Gets all input parameter histories set by setEventHistory.
+Browser:
+```html
+<script src="https://unpkg.com/@iflb/tutti-client/dist/tutti.js"></script>
+<script>
+async function main() {
+    const client = new tutti.TuttiClient(true);
+    await client.open('http://localhost:8080/ducts/wsd');
 
-#### setEventHistory
-- Parameters: `eid`, `query`
-- Sets input parameters to a history.
+    // Sign in with an account first
+    await client.resource.signIn({ user_name: 'admin', password: 'admin' })
+    // Get a list of created projects
+    const projects = await client.resource.listProjects();
+    // List templates for the first project
+    const templates = await client.resource.listTemplates({ project_name: projects[0].name });
+}
+main();
+</script>
+```
 
-#### listProjects
-- Parameters: None
-- Lists Tutti projects.
+## Commands
+
+Current options for namespaces are: **resource**, **mturk**.
+
+### TuttiClient.resource
+
+---
+
+#### checkProjectDiff
+
+<p style="padding-left:20px;">Checks whether the project is already rebuilt for the newest version.</p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+<h5 style="color:#666;">Returns</h5>
+
+- <span style="color:#999;">_Boolean_</span> -- True if the project is in the newest version, thus no rebuild is needed.
+---
+
+#### createNanotaskGroup
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `name`: <span style="color:#999;">_String_</span>
+  - Name for the nanotask group. Must be unique.
+- `nanotask_ids`: <span style="color:#999;">_Array_</span>
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
+
+<h5 style="color:#666;">Returns</h5>
+
+- <span style="color:#999;">_String_</span> -- Created nanotask group ID.
+---
+
+#### createNanotasks
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
+- `nanotasks`: <span style="color:#999;">_Array_</span>
+- `tag`: <span style="color:#999;">_String_</span>
+  - An arbitrary data field to tag nanotask for identifying purposes.
+- `priority`: <span style="color:#999;">_Number_</span>
+  - An integer value to represent nanotask importance. The smaller the value is, more prioritized the nanotask is among others. To learn more about nanotask priority, see Tutti's [Programming Reference > Project Scheme](https://iflb.github.io/tutti/#/guide/ref_scheme).
+- `num_assignable`: <span style="color:#999;">_Number_</span>
+  - Maximum number of workers that can be assigned to nanotask.
+
+<h5 style="color:#666;">Returns</h5>
+
+- <span style="color:#999;">_Object_</span>
+  - `project_name`: <span style="color:#999;">_String_</span>
+    - Tutti project name.
+  - `template_name`: <span style="color:#999;">_String_</span>
+    - Tutti template name of a project.
+  - `nanotask_ids`: <span style="color:#999;">_Array_</span>
+
+---
 
 #### createProject
-- Parameters: `ProjectName`
-- Creates a Tutti project.
 
-#### listTemplates
-- Parameters: `ProjectName`
-- Lists Tutti templates for the specified project.
+<p style="padding-left:20px;"></p>
 
-#### getResponsesForTemplate
-- Parameters: `ProjectName`, `TemplateName`
-- Lists all worker responses for the specified template.
+<h5 style="color:#666;">Parameters</h5>
 
-#### getResponsesForNanotask
-- Parameters: `NanotaskId`
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
 
-#### createTemplates
-- Parameters: `ProjectName`, `TemplateNames`, `PresetEnvName`, `PresetTemplateName`
+---
 
-#### listTemplatePresets
-- Parameters: None
+#### createTemplate
 
-#### getProjectScheme
-- Parameters: `ProjectName`, `Cached`
+<p style="padding-left:20px;"></p>
 
-#### getNanotasks
-- Parameters: `ProjectName`, `TemplateName`
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
+- `preset_group_name`: <span style="color:#999;">_String_</span>
+- `preset_name`: <span style="color:#999;">_String_</span>
+
+---
+
+#### deleteAccount
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `user_id`: <span style="color:#999;">_String_</span>
+  - User ID of Tutti account.
+
+---
+
+#### deleteNanotaskGroup
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `nanotask_group_id`: <span style="color:#999;">_String_</span>
+
+---
 
 #### deleteNanotasks
-- Parameters: `ProjectName`, `TemplateName`, `NanotaskIds`
 
-#### updateNanotaskNumAssignable
-- Parameters: `ProjectName`, `TemplateName`, `NanotaskId`, `NumAssignable`
+<p style="padding-left:20px;"></p>
 
-#### uploadNanotasks
-- Parameters: `ProjectName`, `TemplateName`, `Nanotasks`, `NumAssignable`, `Priority`, `TagName`
+<h5 style="color:#666;">Parameters</h5>
 
-#### getTemplateNode
-- Parameters: `Target`, `WorkSessionId`, `NodeSessionId`
+- `nanotask_ids`: <span style="color:#999;">_Array_</span>
 
-#### createSession
-- Parameters: `ProjectName`, `PlatformWorkerId`, `ClientToken`, `Platform`
+---
 
-#### setResponse
-- Parameters: `WorkSessionId`, `NodeSessionId`, `Answers`
+#### deleteProject
 
-#### checkPlatformWorkerIdExistenceForProject
-- Parameters: `ProjectName`, `Platform`, `PlatformWorkerId`
+<p style="padding-left:20px;"></p>
 
+<h5 style="color:#666;">Parameters</h5>
 
-  
-### MTurk
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
 
-#### getCredentials
-- Parameters: None
+---
 
-#### setCredentials
-- Parameters: `AccessKeyId`, `SecretAccessKey`
+#### deleteTemplate
 
-#### setSandbox
-- Parameters: `Enabled`
+<p style="padding-left:20px;"></p>
 
-#### clearCredentials
-- Parameters: None
+<h5 style="color:#666;">Parameters</h5>
 
-#### deleteQualifications
-- Parameters: `QualificationTypeIds`
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
 
-#### listQualifications
-- Parameters: None
+---
 
-#### listWorkersWithQualificationType
-- Parameters: `QualificationTypeId`
+#### getNanotaskGroup
 
-#### createQualification
-- Parameters: `QualificationTypeParams`
+<p style="padding-left:20px;"></p>
 
-#### associateQualificationsWithWorkers
-- Parameters: `AssociateQualificationParams`
+<h5 style="color:#666;">Parameters</h5>
 
-#### listWorkers
-- Parameters: None
+- `nanotask_group_id`: <span style="color:#999;">_String_</span>
 
-#### notifyWorkers
-- Parameters: `Subject`, `MessageText`, `SendEmailWorkerIds`
+---
 
-#### createHITType
-- Parameters: `CreateHITTypeParams`, `HITTypeQualificationTypeId`
+#### getProjectScheme
 
-#### createHITsWithHITType
-- Parameters: `ProjectName`, `NumHITs`, `CreateHITsWithHITTypeParams`
+<p style="padding-left:20px;"></p>
 
-#### getHITTypes
-- Parameters: `HITTypeIds`
+<h5 style="color:#666;">Parameters</h5>
 
-#### expireHITs
-- Parameters: `HITIds`
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `cached`: <span style="color:#999;">_Boolean_</span>
+  - Whether to return cached value in the response. Note that setting this value to false may result in slower responses.
 
-#### deleteHITs
-- Parameters: `HITIds`
+---
 
-#### listHITs
-- Parameters: `Cached`
+#### getUserIds
 
-#### listHITsForHITType
-- Parameters: `HITTypeId=null`, `Cached=true`
+<p style="padding-left:20px;"></p>
 
-#### listAssignments
-- Parameters: `Cached`
+<h5 style="color:#666;">Parameters</h5>
 
-#### listAssignmentsForHITs
-- Parameters: `HITIds`
+- [None]
+
+---
+
+#### getWebServiceDescriptor
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### listNanotaskGroups
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
+
+---
+
+#### listNanotasks
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
+
+---
+
+#### listNanotasksWithResponses
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
+
+---
+
+#### listNodeSessionsForWorkSession
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `work_session_id`: <span style="color:#999;">_String_</span>
+- `only_template`: <span style="color:#999;">_Boolean_</span>
+  - If True, returns only node sessions for template nodes.
+
+---
+
+#### listProjects
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### listProjectsWithResponses
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### listResponsesForNanotask
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `nanotask_id`: <span style="color:#999;">_String_</span>
+
+---
+
+#### listResponsesForProject
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### listResponsesForTemplate
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `template_name`: <span style="color:#999;">_String_</span>
+  - Tutti template name of a project.
+
+---
+
+#### listResponsesForWorkSession
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `work_session_id`: <span style="color:#999;">_String_</span>
+
+---
+
+#### listResponsesForWorker
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `worker_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for worker.
+
+---
+
+#### listTemplatePresets
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### listTemplates
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### listTemplatesWithResponses
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### listWorkSessionsWithResponses
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### listWorkersForProject
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### listWorkersWithResponses
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### rebuildProject
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+
+---
+
+#### signIn
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `user_name`: <span style="color:#999;">_String_</span>, default null
+  - User name of Tutti account.
+- `password_hash`: <span style="color:#999;">_String_</span>, default null
+  - MD5-hashed password (hex-digested) of Tutti account.
+- `access_token`: <span style="color:#999;">_String_</span>, default null
+  - Valid access token obtained in previous logins.
+- `...args`: 
+  - Accepts only `password` key (non-hashed password of Tutti account). This is **not recommended**; use `password_hash` or `access_token` instead.
+
+---
+
+#### signOut
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### signUp
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `user_name`: <span style="color:#999;">_String_</span>
+  - User name of Tutti account.
+- `password`: 
+- `privilege_ids`: <span style="color:#999;">_Array_</span>
+  - Priviledge IDs to associate with account. **Currently not in use.**
+
+### TuttiClient.mturk
+
+---
+
+#### addCredentials
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `access_key_id`: <span style="color:#999;">_String_</span>
+  - Access Key ID of MTurk credentials.
+- `secret_access_key`: <span style="color:#999;">_String_</span>
+  - Secret Access Key of MTurk credentials.
+- `label`: 
+
+---
+
+#### addHITsToTuttiHITBatch
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `batch_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for Tutti HIT Batch.
+- `hit_params`: <span style="color:#999;">_Object_</span>
+  - Parameters for CreateHIT operation of MTurk.
+- `num_hits`: <span style="color:#999;">_Number_</span>
+  - Number of HITs to create for Tutti HIT Batch.
+
+---
 
 #### approveAssignments
-- Parameters: `AssignmentIds`, `RequesterFeedback`
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `assignment_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk Assignment IDs.
+- `requester_feedback`: 
+- `override_rejection`: 
+
+---
+
+#### associateQualificationsWithWorkers
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `qualification_type_id`: 
+- `worker_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk Worker IDs.
+- `integer_value`: 
+- `send_notification`: 
+
+---
+
+#### createQualificationType
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `name`: 
+- `description`: 
+- `auto_granted`: 
+- `qualification_type_status`: 
+
+---
+
+#### createTuttiHITBatch
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `name`: 
+- `project_name`: <span style="color:#999;">_String_</span>
+  - Tutti project name.
+- `hit_type_params`: <span style="color:#999;">_Object_</span>
+  - Parameters for CreateHITType operation of MTurk.
+- `hit_params`: <span style="color:#999;">_Object_</span>
+  - Parameters for CreateHIT operation of MTurk.
+- `num_hits`: <span style="color:#999;">_Number_</span>
+  - Number of HITs to create for Tutti HIT Batch.
+
+---
+
+#### deleteCredentials
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `credentials_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for registered MTurk credentials.
+
+---
+
+#### deleteHITs
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `request_id`: <span style="color:#999;">_String_</span>
+  - Arbitrary string value to identify response for this request.
+- `hit_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk HIT Ids.
+
+---
+
+#### deleteQualificationTypes
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `qualification_type_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk Qualification type IDs.
+
+---
+
+#### deleteTuttiHITBatch
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `request_id`: <span style="color:#999;">_String_</span>
+  - Arbitrary string value to identify response for this request.
+- `batch_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for Tutti HIT Batch.
+
+---
+
+#### execBoto3
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `method`: 
+- `parameters`: 
+
+---
+
+#### expireHITs
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `request_id`: <span style="color:#999;">_String_</span>
+  - Arbitrary string value to identify response for this request.
+- `hit_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk HIT Ids.
+
+---
+
+#### getActiveCredentials
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### getCredentials
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `credentials_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for registered MTurk credentials.
+
+---
+
+#### listAssignmentsForTuttiHITBatch
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `batch_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for Tutti HIT Batch.
+- `cached`: <span style="color:#999;">_Boolean_</span>
+  - Whether to return cached value in the response. Note that setting this value to false may result in slower responses.
+
+---
+
+#### listCredentials
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### listHITTypes
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### listHITsForTuttiHITBatch
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `batch_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for Tutti HIT Batch.
+- `cached`: <span style="color:#999;">_Boolean_</span>
+  - Whether to return cached value in the response. Note that setting this value to false may result in slower responses.
+
+---
+
+#### listQualificationTypes
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `query`: 
+- `only_user_defined`: <span style="color:#999;">_Boolean_</span>
+  - Whether to filter out Qualification types of other requesters in the results. This is directly passed to MustBeOwnedByCaller parameter for MTurk's ListQualificationTypes operation.
+- `cached`: <span style="color:#999;">_Boolean_</span>
+  - Whether to return cached value in the response. Note that setting this value to false may result in slower responses.
+
+---
+
+#### listTuttiHITBatches
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### listTuttiHITBatchesWithHITs
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### listWorkers
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- [None]
+
+---
+
+#### notifyWorkers
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `subject`: 
+- `message_text`: 
+- `worker_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk Worker IDs.
+
+---
 
 #### rejectAssignments
-- Parameters: `AssignmentIds`, `RequesterFeedback`
 
-#### getAssignments
-- Parameters: `AssignmentIds`
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `assignment_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk Assignment IDs.
+- `requester_feedback`: 
+
+---
+
+#### renameCredentials
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `credentials_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for registered MTurk credentials.
+- `label`: 
+
+---
+
+#### sendBonus
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `worker_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk Worker IDs.
+- `bonus_amount`: 
+- `assignment_ids`: <span style="color:#999;">_Array_</span>
+  - List of MTurk Assignment IDs.
+- `reason`: 
+
+---
+
+#### setActiveCredentials
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `credentials_id`: <span style="color:#999;">_String_</span>
+  - Tutti's internal hash ID for registered MTurk credentials.
+
+---
+
+#### setActiveSandboxMode
+
+<p style="padding-left:20px;"></p>
+
+<h5 style="color:#666;">Parameters</h5>
+
+- `is_sandbox`: <span style="color:#999;">_Boolean_</span>
+  - Activation of Sandbox mode for MTurk credentials.
+
