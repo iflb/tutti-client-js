@@ -1,12 +1,7 @@
 const fs = require('fs');
 const esprima = require('esprima');
 const ctrl = require('../lib/controller.js');
-const { defaultArgs } = require('./profiles.js')
-
-const methods = {
-    resource: Object.getOwnPropertyNames(new ctrl.ResourceController()).filter(m => !m.startsWith('_')),
-    mturk: Object.getOwnPropertyNames(new ctrl.MTurkController()).filter(m => !m.startsWith('_')),
-};
+const { defaultParamProfiles, methodProfiles } = require('./profiles.js')
 
 function getParen(tokens, startIdx=0, start='{', end='}') {
     while(startIdx<tokens.length && tokens[startIdx].value!==start) startIdx++;
@@ -32,88 +27,131 @@ function getClassCodeInModule(modulePath, className) {
     return getParen(tokens, i);
 }
 
-function parseMethodsAndArgsInController(tokens) {
+function parseMethodsAndParamsInController(tokens) {
     let i=0;
-    let methodArgs = {};
+    let methodParams = {};
     while(tokens[i].value!=='_setMethods') i++;
     const setMethodsParen = getParen(tokens, i);
     for(let i=1; i<setMethodsParen.length; i++) {
         let methodName = setMethodsParen[i].value;
         if(methodName!=='}') {
-            const argsParen = getParen(setMethodsParen, i+1, '(', ')');
-            const argsBrace = getParen(argsParen);
-            let args = argsBrace.length>0 ? argsBrace.splice(1, argsBrace.length-2).filter(a => a.value!==',').map(a => a.value) : [];
-            let _args = [];
-            for(let i=0; i<args.length; i++) {
+            const paramsParen = getParen(setMethodsParen, i+1, '(', ')');
+            const paramsBrace = getParen(paramsParen);
+            let params = paramsBrace.length>0 ? paramsBrace.splice(1, paramsBrace.length-2).filter(a => a.value!==',').map(a => a.value) : [];
+            let _params = [];
+            for(let i=0; i<params.length; i++) {
                 let _arg = {};
-                if(args[i]==='...') {
-                    _arg.name = args[i]+args[i+1];
+                if(params[i]==='...') {
+                    _arg.name = params[i]+params[i+1];
                     i++;
                 } else {
-                    _arg.name = args[i];
-                    if(args[i+1]==='=') {
-                        _arg.default = args[i+2];
+                    _arg.name = params[i];
+                    if(params[i+1]==='=') {
+                        _arg.default = params[i+2];
                         i += 2;
                     }
                 }
-                _args.push(_arg);
+                _params.push(_arg);
             }
-            methodArgs[methodName] = _args;
-            const procParen = getParen(setMethodsParen, i+argsParen.length+1);
-            i += argsParen.length + procParen.length + 1;
+            methodParams[methodName] = _params;
+            const procParen = getParen(setMethodsParen, i+paramsParen.length+1);
+            i += paramsParen.length + procParen.length + 1;
         } else {
             break;
         }
     }
-    return methodArgs;
+    return methodParams;
 }
 
-let methodArgs = {
-    'Resource':
-        parseMethodsAndArgsInController(
+let methodParams = {
+    resource:
+        parseMethodsAndParamsInController(
             getClassCodeInModule('../lib/controller.js', 'ResourceController')
         ),
-    'MTurk':
-        parseMethodsAndArgsInController(
+    mturk:
+        parseMethodsAndParamsInController(
             getClassCodeInModule('../lib/controller.js', 'MTurkController')
         ),
 };
 
-let markDownText = '';
 
-for(let type of Object.keys(methodArgs)) {
-    let _methodArgs = methodArgs[type];
-    for(let methodName of Object.keys(_methodArgs)){
-        _methodArgs[methodName] = _methodArgs[methodName].map(a => ({ ...a, ...defaultArgs.mturk[a.name] }));
+
+
+
+const headBody = fs.readFileSync('head-body.md');
+
+let markDownText = headBody + '\n## Commands\n\n';
+
+markDownText += `Current options for namespaces are: ${Object.keys(methodParams).map(ns => '**'+ns+'**').join(', ')}.\n\n`;
+
+console.log('=== INSUFFICIENT INFORMATION ===');
+for(let namespace of Object.keys(methodParams)) {
+    console.log(`[${namespace}]`);
+    let _methodParams = methodParams[namespace];
+    for(let methodName of Object.keys(_methodParams)){
+        _methodParams[methodName] = _methodParams[methodName].map(a => ({
+            ...a,
+            ...defaultParamProfiles.common[a.name],
+            ...defaultParamProfiles[namespace][a.name],
+            ...methodProfiles[namespace][methodName].parameters[a.name]
+        }));
     }
-    _methodArgs = Object.fromEntries(Object.entries(_methodArgs).sort(([a,],[b,]) => a > b ? 1 : -1));
+    _methodParams = Object.fromEntries(Object.entries(_methodParams).sort(([a,],[b,]) => a > b ? 1 : -1));
 
-    markDownText += `### ${type}\n`;
+    markDownText += `### TuttiClient.${namespace}\n`;
     
-    Object.entries(_methodArgs).forEach(([methodName,args]) => {
+    Object.entries(_methodParams).forEach(([methodName,params]) => {
+        const profile = methodProfiles[namespace][methodName];
         markDownText +=
 `
 ---
 
 #### ${methodName}
 
-Hogehoge description.
+<p style="padding-left:20px;">${profile.description}</p>
 
-##### Argument Keys\n\n
+<h5 style="color:#666;">Parameters</h5>\n
 `;
-        if(args.length === 0) {
+        if(params.length === 0) {
             markDownText += '- [None]\n';
         } else {
-            args.forEach(a => {
-                markDownText += `- \`${a.name}\``;
-                if(a.type) markDownText += ` (_${a.type}_)`;
-                if(a.default) markDownText += `default: ${a.default}`;
+            let insufficients = {};
+            params.forEach(a => {
+                insufficients[a.name] = [];
+                let ins = insufficients[a.name];
+                markDownText += `- \`${a.name}\`: `;
+                if(a.type) markDownText += `<span style="color:#999;">_${a.type.name}_</span>`; else ins.push('type');
+                if(a.default) markDownText += `, default ${a.default}`;
                 markDownText += '\n';
-                if(a.description) markDownText += `  - ${a.description}\n`;
+                if(a.description) markDownText += `  - ${a.description}\n`; else ins.push('description');
             });
+            if(Object.values(insufficients).flat().length > 0) {
+                console.log(`+ ${methodName}:`);
+                Object.entries(insufficients).forEach(([argName, ins]) => {
+                    if(ins.length > 0) console.log(` - ${argName}\t(${ins})`);
+                });
+                console.log('');
+            }
+        }
+        if(profile.returns) {
+            markDownText += `\n<h5 style="color:#666;">Returns</h5>\n\n`;
+            if(Array.isArray(profile.returns.data)) {
+                markDownText += `- <span style="color:#999;">_Object_</span>`;
+                if(profile.returns.data.description) markDownText += ` -- ${profile.returns.data.description}`;
+                markDownText += `\n`;
+                profile.returns.data.forEach(d => {
+                    markDownText += `  - \`${d.name}\`: <span style="color:#999;">_${d.type.name}_</span>\n`;
+                    if(d.description) markDownText += `    - ${d.description}\n`;
+                });
+            } else {
+                markDownText += `- <span style="color:#999;">_${profile.returns.data.type.name}_</span>`;
+                if(profile.returns.data.description) markDownText += ` -- ${profile.returns.data.description}`;
+            }
+        //} else {
+        //    markDownText += '- [Nothing returned]';
         }
     });
     markDownText += '\n';
 }
 
-fs.writeFileSync('hoge.md', markDownText);
+fs.writeFileSync('../README.md', markDownText);
