@@ -40,7 +40,7 @@ class TuttiController extends ThisBound {
         this._callIds = {};
     }
 
-    setMethods(self, methods) {
+    _setMethods(self, methods) {
         Object.entries(methods).forEach(([name, f]) => {
             self[name] =
                 (args = {}, { awaited = true } = {}) => {
@@ -112,7 +112,7 @@ class MTurkController extends TuttiController {
 
         let self = this;
 
-        this.setMethods({
+        this._setMethods({
             getActiveCredentials() {
                     return self._callOrSend(
                             self._duct.EVENT.MARKETPLACE_MTURK_GET_ACTIVE_CREDENTIALS,
@@ -205,7 +205,7 @@ class MTurkController extends TuttiController {
                 },
             addHITsToTuttiHITBatch({ batch_id, hit_params, num_hits }) {
                     return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_ADD_HITS,
+                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_ADD_FOR_TUTTI_HIT_BATCH,
                             { batch_id, hit_params, num_hits }, arguments
                         );
                 },
@@ -290,19 +290,15 @@ class ResourceController extends TuttiController {
         super(duct);
         let self = this;
 
-        this.setMethods({
+        this._setMethods({
             getWebServiceDescriptor() {
                     return self._callOrSend(
                             self._duct.EVENT.SYSTEM_GET_WSD,
                             {}, arguments
                         );
                 },
-            signUp({ user_name, password_hash, privilege_ids, ...args }) {
-                    if('password' in args) {
-                        //password_hash = crypto.createHash('md5').update(args.password, 'binary').digest('hex');
-                        password_hash = CryptoJS.MD5(args.password).toString();
-                        delete arguments[0].password;
-                    }
+            signUp({ user_name, password, privilege_ids }) {
+                    password_hash = CryptoJS.MD5(args.password).toString();
                     return self._callOrSend(
                             self._duct.EVENT.AUTHENTICATION_SIGN_UP,
                             { user_name, password_hash, privilege_ids }, arguments
@@ -468,10 +464,10 @@ class ResourceController extends TuttiController {
                             { project_name, template_name }, arguments
                         );
                 },
-            createNanotasks({ id, project_name, template_name, nanotasks, tag, priority, num_assignable }) {
+            createNanotasks({ project_name, template_name, nanotasks, tag, priority, num_assignable }) {
                     return self._callOrSend(
                             self._duct.EVENT.NANOTASK_ADD_MULTI_FOR_TEMPLATE,
-                            { id, project_name, template_name, nanotasks, tag, priority, num_assignable }, arguments
+                            { project_name, template_name, nanotasks, tag, priority, num_assignable }, arguments
                         );
                 },
             deleteNanotasks({ nanotask_ids }) {
@@ -667,9 +663,9 @@ class ResourceEventListener extends DuctEventListener {
                 'deleteAccount':
                     duct.EVENT.ACCOUNT_DELETE,
                 'checkProjectDiff':
-                    duct.EVENT.CHECK_PROJECT_DIFF,
+                    duct.EVENT.SYSTEM_BUILD_CHECK_PROJECT_DIFF,
                 'rebuildProject':
-                    duct.EVENT.REBUILD_PRODUCTION_ENVIRONMENT,
+                    duct.EVENT.SYSTEM_BUILD_REBUILD_PROJECT,
                 'listProjects':
                     duct.EVENT.PROJECT_LIST,
                 'createProject':
@@ -762,7 +758,7 @@ class MTurkEventListener extends DuctEventListener {
                 'createTuttiHITBatch':
                     duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_CREATE,
                 'addHITsToTuttiHITBatch':
-                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_ADD_HITS,
+                    duct.EVENT.MARKETPLACE_MTURK_HIT_ADD_FOR_TUTTI_HIT_BATCH,
                 'deleteTuttiHITBatch':
                     duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_DELETE,
                 'listQualificationTypes':
