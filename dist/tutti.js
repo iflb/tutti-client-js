@@ -8,956 +8,22 @@
 	else
 		root["tutti"] = factory();
 })(self, function() {
-return /******/ (function() { // webpackBootstrap
+return /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./index.js":
-/*!******************!*\
-  !*** ./index.js ***!
-  \******************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-module.exports = __webpack_require__(/*! ./lib/tutti */ "./lib/tutti.js");
-
-
-/***/ }),
-
-/***/ "./lib/controller.js":
-/*!***************************!*\
-  !*** ./lib/controller.js ***!
-  \***************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "./node_modules/@iflb/lib/lib/lib.js");
-const { TuttiServerEventError } = __webpack_require__(/*! ./error.js */ "./lib/error.js");
-const CryptoJS = __webpack_require__(/*! crypto-js */ "./node_modules/crypto-js/index.js");
-
-class TuttiController extends ThisBound {
-    constructor( duct ){
-        super();
-        this._duct = duct;
-        this._accessToken = null;
-        this._callIds = {};
-    }
-
-    _setMethods(self, methods) {
-        Object.entries(methods).forEach(([name, f]) => {
-            self[name] =
-                (args = {}, { awaited = true } = {}) => {
-                    return f(args, self._accessToken, awaited, name)
-                };
-            self[name].call =
-                (args = {}) => {
-                    return f(args, self._accessToken, true, name);
-                };
-            self[name].send =
-                (args = {}) => {
-                    return f(args, self._accessToken, false, name);
-                };
-        });
-        self._callIds = Object.fromEntries(Object.keys(methods).map((name) => [name, 0]));
-    }
-
-    _callOrSend(self, eid, args, [rawArgs, accessToken, awaited, methodName]) {
-        const send = (eid, args) => {
-            const rid = self._duct.nextRid();
-            const data = self._data(args);
-
-            self._duct.logger.addSent(rid, methodName, data);
-
-            return self._duct.send( rid, eid, data );
-        };
-
-        const called = async (eid, args) => {
-            const data = self._data(args);
-            let { success, content } = await self._duct.call( eid, data );
-
-            self._duct.logger.addSent(`${methodName}${self._callIds[methodName]}`, methodName, data);
-            self._duct.logger.addReceived(`${methodName}${self._callIds[methodName]}`, methodName, { success, content });
-
-            if(success) return content; else throw new TuttiServerEventError(content);
-        };
-
-        if(typeof(args)!=='object') 
-            throw 'Tutti args must be passed as object';
-
-        const paramsPossiblyUndefined =
-            Object.entries(rawArgs)
-                .filter(([key,]) => Object.keys(args).indexOf(key)===-1)
-                .map(([key,]) => key);
-
-        if(paramsPossiblyUndefined.length>0)
-            console.warn(`Possibly undefined parameter(s): ${paramsPossiblyUndefined}`);
-
-        if(accessToken)
-            args.access_token = accessToken;
-
-        const f = awaited ? called : send;
-        return f(eid, args)
-    }
-
-    _data(self, data) {
-        const camelToSnake = str => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-        for(const d of Object.entries(data)) {
-            delete data[d[0]];
-            if(d[1]!==undefined) data[camelToSnake(d[0])] = d[1];
-        }
-        return data;
-    }
-}
-
-class MTurkController extends TuttiController {
-    constructor(duct){
-        super(duct);
-
-        let self = this;
-
-        this._setMethods({
-            getActiveCredentials() {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_GET_ACTIVE_CREDENTIALS,
-                            {}, arguments
-                        );
-                },
-            setActiveCredentials({ credentials_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_CREDENTIALS,
-                            { credentials_id }, arguments
-                        );
-                }, 
-            listCredentials() {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_LIST_CREDENTIALS,
-                            {}, arguments
-                        );
-                }, 
-            getCredentials({ credentials_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_GET_CREDENTIALS,
-                            { credentials_id }, arguments
-                        );
-                }, 
-            deleteCredentials({ credentials_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_DELETE_CREDENTIALS,
-                            { credentials_id }, arguments
-                        );
-                }, 
-            renameCredentials({ credentials_id, label }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_RENAME_CREDENTIALS,
-                            { credentials_id, label }, arguments
-                        );
-                }, 
-            addCredentials({ access_key_id, secret_access_key, label }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_ADD_CREDENTIALS,
-                            { access_key_id, secret_access_key, label }, arguments
-                        );
-                }, 
-            setActiveSandboxMode({ is_sandbox }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_SANDBOX_MODE,
-                            { is_sandbox }, arguments
-                        );
-                },
-            execBoto3({ method, parameters }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_EXEC_BOTO3,
-                            { method, parameters }, arguments
-                        );
-                },
-            expireHITs({ request_id, hit_ids }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_EXPIRE,
-                            { request_id, hit_ids }, arguments
-                        );
-                },
-            deleteHITs({ request_id, hit_ids }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_DELETE,
-                            { request_id, hit_ids }, arguments
-                        );
-                },
-            listHITsForTuttiHITBatch({ batch_id, cached }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_LIST_FOR_TUTTI_HIT_BATCH,
-                            { batch_id, cached }, arguments
-                        );
-                },
-            listTuttiHITBatches() {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST,
-                            {}, arguments
-                        );
-                },
-            listTuttiHITBatchesWithHITs() {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST_WITH_HITS,
-                            {}, arguments
-                        );
-                },
-            createTuttiHITBatch({ name, project_name, hit_type_params, hit_params, num_hits }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_CREATE,
-                            { name, project_name, hit_type_params, hit_params, num_hits }, arguments
-                        );
-                },
-            addHITsToTuttiHITBatch({ batch_id, hit_params, num_hits }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_ADD_FOR_TUTTI_HIT_BATCH,
-                            { batch_id, hit_params, num_hits }, arguments
-                        );
-                },
-            deleteTuttiHITBatch({ request_id, batch_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_DELETE,
-                            { request_id, batch_id }, arguments
-                        );
-                },
-            listHITTypes() {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_TYPE_LIST,
-                            {}, arguments
-                        );
-                },
-            listQualificationTypes({ query, only_user_defined, cached }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_LIST,
-                            { query, only_user_defined, cached }, arguments
-                        );
-                },
-            createQualificationType({ name, description, auto_granted, qualification_type_status }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_CREATE,
-                            { name, description, auto_granted, qualification_type_status }, arguments
-                        );
-                },
-            deleteQualificationTypes({ qualification_type_ids }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_DELETE,
-                            { qualification_type_ids }, arguments
-                        );
-                },
-            listWorkers() {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_WORKER_LIST,
-                            {}, arguments
-                        );
-                },
-            notifyWorkers({ subject, message_text, worker_ids }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_WORKER_NOTIFY,
-                            { subject, message_text, worker_ids }, arguments
-                        );
-                },
-            associateQualificationsWithWorkers({ qualification_type_id, worker_ids, integer_value, send_notification }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_WORKER_ASSOCIATE_QUALIFICATIONS,
-                            { qualification_type_id, worker_ids, integer_value, send_notification }, arguments
-                        );
-                },
-            listAssignmentsForTuttiHITBatch({ batch_id, cached }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_LIST_FOR_TUTTI_HIT_BATCH,
-                            { batch_id, cached }, arguments
-                        );
-                },
-            approveAssignments({ assignment_ids, requester_feedback, override_rejection }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_APPROVE,
-                            { assignment_ids, requester_feedback, override_rejection }, arguments
-                        );
-                },
-            rejectAssignments({ assignment_ids, requester_feedback }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_REJECT,
-                            { assignment_ids, requester_feedback }, arguments
-                        );
-                },
-            sendBonus({ worker_ids, bonus_amount, assignment_ids, reason }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_SEND_BONUS,
-                            { worker_ids, bonus_amount, assignment_ids, reason }, arguments
-                        );
-                },
-        });
-    }
-}
-
-class ResourceController extends TuttiController {
-    constructor(duct){
-        super(duct);
-        let self = this;
-
-        this._setMethods({
-            getWebServiceDescriptor() {
-                    return self._callOrSend(
-                            self._duct.EVENT.SYSTEM_GET_WSD,
-                            {}, arguments
-                        );
-                },
-            signUp({ user_name, password, privilege_ids }) {
-                    password_hash = CryptoJS.MD5(args.password).toString();
-                    return self._callOrSend(
-                            self._duct.EVENT.AUTHENTICATION_SIGN_UP,
-                            { user_name, password_hash, privilege_ids }, arguments
-                        );
-                },
-            signIn({ user_name = null, password_hash = null, access_token = null, ...args }) {
-                    if('password' in args) {
-                        password_hash = CryptoJS.MD5(args.password).toString();
-                        delete arguments[0].password;
-                    }
-                    return self._callOrSend(
-                            self._duct.EVENT.AUTHENTICATION_SIGN_IN,
-                            { user_name, password_hash, access_token }, arguments
-                        );
-                },
-            signOut() {
-                    return self._callOrSend(
-                            self._duct.EVENT.AUTHENTICATION_SIGN_OUT,
-                            {}, arguments
-                        );
-                },
-            getUserIds() {
-                    return self._callOrSend(
-                            self._duct.EVENT.ACCOUNT_LIST_IDS,
-                            {}, arguments
-                        );
-                },
-            deleteAccount({ user_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.ACCOUNT_DELETE,
-                            { user_id }, arguments
-                        );
-                },
-            checkProjectDiff({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.SYSTEM_BUILD_CHECK_PROJECT_DIFF,
-                            { project_name }, arguments
-                        );
-                },
-            rebuildProject({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.SYSTEM_BUILD_REBUILD_PROJECT,
-                            { project_name }, arguments
-                        );
-                },
-            listProjects() {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_LIST,
-                            {}, arguments
-                        );
-                },
-            createProject({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_ADD,
-                            { project_name }, arguments
-                        );
-                },
-            deleteProject({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_DELETE,
-                            { project_name }, arguments
-                        );
-                },
-            getProjectScheme({ project_name, cached }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_GET_SCHEME,
-                            { project_name, cached }, arguments
-                        );
-                },
-            createTemplate({ project_name, template_name, preset_group_name, preset_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_ADD_TEMPLATE,
-                            { project_name, template_name, preset_group_name, preset_name }, arguments
-                        );
-                },
-            deleteTemplate({ project_name, template_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_DELETE_TEMPLATE,
-                            { project_name, template_name }, arguments
-                        );
-                },
-            listTemplates({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_LIST_TEMPLATES,
-                            { project_name }, arguments
-                        );
-                },
-            listTemplatePresets({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.PROJECT_LIST_TEMPLATE_PRESETS,
-                            { project_name }, arguments
-                        );
-                },
-            listResponsesForProject({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_FOR_PROJECT,
-                            { project_name }, arguments
-                        );
-                },
-            listResponsesForTemplate({ project_name, template_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_FOR_TEMPLATE,
-                            { project_name, template_name }, arguments
-                        );
-                },
-            listResponsesForNanotask({ nanotask_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_FOR_NANOTASK,
-                            { nanotask_id }, arguments
-                        );
-                },
-            listResponsesForWorker({ worker_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_FOR_WORKER,
-                            { worker_id }, arguments
-                        );
-                },
-            listResponsesForWorkSession({ work_session_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_FOR_WORK_SESSION,
-                            { work_session_id }, arguments
-                        );
-                },
-            listProjectsWithResponses() {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_PROJECTS,
-                            {}, arguments
-                        );
-                },
-            listTemplatesWithResponses({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_TEMPLATES,
-                            { project_name }, arguments
-                        );
-                },
-            listNanotasksWithResponses({ project_name, template_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_NANOTASKS,
-                            { project_name, template_name }, arguments
-                        );
-                },
-            listWorkersWithResponses({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_WORKERS,
-                            { project_name }, arguments
-                        );
-                },
-            listWorkSessionsWithResponses({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.RESPONSE_LIST_WORK_SESSIONS,
-                            { project_name }, arguments
-                        );
-                },
-            listWorkersForProject({ project_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.WORKER_LIST_FOR_PROJECT,
-                            { project_name }, arguments
-                        );
-                },
-            listNanotasks({ project_name, template_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.NANOTASK_LIST,
-                            { project_name, template_name }, arguments
-                        );
-                },
-            createNanotasks({ project_name, template_name, nanotasks, tag, priority, num_assignable }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.NANOTASK_ADD_MULTI_FOR_TEMPLATE,
-                            { project_name, template_name, nanotasks, tag, priority, num_assignable }, arguments
-                        );
-                },
-            deleteNanotasks({ nanotask_ids }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.NANOTASK_DELETE,
-                            { nanotask_ids }, arguments
-                        );
-                },
-            createNanotaskGroup({ name, nanotask_ids, project_name, template_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.NANOTASK_GROUP_ADD,
-                            { name, nanotask_ids, project_name, template_name }, arguments
-                        );
-                },
-            listNanotaskGroups({ project_name, template_name }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.NANOTASK_GROUP_LIST,
-                            { project_name, template_name }, arguments
-                        );
-                },
-            getNanotaskGroup({ nanotask_group_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.NANOTASK_GROUP_GET,
-                            { nanotask_group_id }, arguments
-                        );
-                },
-            deleteNanotaskGroup({ nanotask_group_id }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.NANOTASK_GROUP_DELETE,
-                            { nanotask_group_id }, arguments
-                        );
-                },
-            listNodeSessionsForWorkSession({ work_session_id, only_template }) {
-                    return self._callOrSend(
-                            self._duct.EVENT.EXECUTE_AUTOMATION,
-                            { work_session_id, only_template }, arguments
-                        );
-                },
-            //getAutomationParameterSet({ automation_parameter_set_id }) {
-            //        return self._callOrSend(
-            //                self._duct.EVENT.AUTOMATION_PARAMETER_SET_GET,
-            //                { automation_parameter_set_id }, arguments
-            //            );
-            //    },
-            //listAutomationParameterSets() {
-            //        return self._callOrSend(
-            //                self._duct.EVENT.AUTOMATION_PARAMETER_SET_LIST,
-            //                {}, arguments
-            //            );
-            //    },
-            //createAutomationParameterSet({ name, platform_parameter_set_id, project_name }) {
-            //        return self._callOrSend(
-            //                self._duct.EVENT.AUTOMATION_PARAMETER_SET_ADD,
-            //                { name, platform_parameter_set_id, project_name }, arguments
-            //            );
-            //    },
-            //getPlatformParameterSet({ platform_parameter_set_id }) {
-            //        return self._callOrSend(
-            //                self._duct.EVENT.PLATFORM_PARAMETER_SET_GET,
-            //                { platform_parameter_set_id }, arguments
-            //            );
-            //    },
-            //listPlatformParameterSets() {
-            //        return self._callOrSend(
-            //                self._duct.EVENT.PLATFORM_PARAMETER_SET_LIST,
-            //                {}, arguments
-            //            );
-            //    },
-            //createPlatformParameterSet({ name, platform, parameters }) {
-            //        return self._callOrSend(
-            //                self._duct.EVENT.PLATFORM_PARAMETER_SET_ADD,
-            //                { name, platform, parameters }, arguments
-            //            );
-            //    },
-            //executeAutomation({ automation_parameter_set_id, parameters }) {
-            //        return self._callOrSend(
-            //                self._duct.EVENT.EXECUTE_AUTOMATION,
-            //                { automation_parameter_set_id, parameters }, arguments
-            //            );
-            //    },
-        });
-    }
-}
-
-module.exports = {
-        ResourceController,
-        MTurkController,
-    };
-
-
-/***/ }),
-
-/***/ "./lib/error.js":
-/*!**********************!*\
-  !*** ./lib/error.js ***!
-  \**********************/
-/***/ (function(module) {
-
-class TuttiServerEventError extends Error {
-    constructor(content){
-        super(content.stacktrace[content.stacktrace.length-1]);
-        this.name = 'TuttiServerEventError'
-        this.code = content.error_code;
-        this.details = content;
-    }
-}
-
-module.exports = {
-        TuttiServerEventError
-    };
-
-
-/***/ }),
-
-/***/ "./lib/listener.js":
-/*!*************************!*\
-  !*** ./lib/listener.js ***!
-  \*************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-const ducts = __webpack_require__(/*! @iflb/ducts-client */ "./node_modules/@iflb/ducts-client/lib/ducts.js");
-
-class DuctEventListener extends ducts.DuctEventListener {
-    constructor(duct) {
-        super();
-        this._duct = duct;
-        this._handlers = {};
-
-        this.on =
-            (names, { success, error, complete }) => {
-                for(let name of (names instanceof Array) ? names : [names]) {
-                    if (!(name in this._handlers)) {
-                        throw new ReferenceError('['+name+'] is not defined');
-                    } 
-
-                    if(success)  this._handlers[name].success.push(success);
-                    if(error)    this._handlers[name].error.push(error);
-                    if(complete) this._handlers[name].complete.push(complete);
-                }
-            }
-    }
-
-    _handle(self, source, name, rid, data) {
-        if(data===null) return;
-        try {
-            const handlers = self._handlers[name];
-
-            self._duct.logger.addReceived(rid, name, data);
-
-            if(data.success) {
-                if(handlers.success) handlers.success.forEach(func => func(data.content));
-            } else {
-                if(handlers.error) handlers.error.forEach(func => func(data.content));
-            }
-            if(handlers.complete) handlers.complete.forEach(func => func());
-        } catch(e) {
-            console.error(e);
-        }
-    }
-
-    _setDefaultTuttiHandlers(self, methods) {
-        for(const method of methods) {
-            self._handlers[method] = { success: [], error: [], complete: [] };
-        }
-    }
-
-    registerHandlers(self, source, listenerEventRelayMap) {
-        Object.entries(listenerEventRelayMap).forEach(([listenerName, eid]) => {
-            self._duct.setEventHandler(
-                eid,
-                (rid, eid, data) => { self._handle(source, listenerName, rid, data); }
-            )
-        });
-        self._setDefaultTuttiHandlers(Object.keys(listenerEventRelayMap));
-    }
-}
-
-class ResourceEventListener extends DuctEventListener {
-    constructor(duct) {
-        super(duct);
-
-        const listenerEventRelayMap = {
-                'getWebServiceDescriptor':
-                    duct.EVENT.SYSTEM_GET_WSD,
-                'signUp':
-                    duct.EVENT.AUTHENTICATION_SIGN_UP,
-                'signIn':
-                    duct.EVENT.AUTHENTICATION_SIGN_IN,
-                'signOut':
-                    duct.EVENT.AUTHENTICATION_SIGN_OUT,
-                'getUserIds':
-                    duct.EVENT.ACCOUNT_LIST_IDS,
-                'deleteAccount':
-                    duct.EVENT.ACCOUNT_DELETE,
-                'checkProjectDiff':
-                    duct.EVENT.SYSTEM_BUILD_CHECK_PROJECT_DIFF,
-                'rebuildProject':
-                    duct.EVENT.SYSTEM_BUILD_REBUILD_PROJECT,
-                'listProjects':
-                    duct.EVENT.PROJECT_LIST,
-                'createProject':
-                    duct.EVENT.PROJECT_ADD,
-                'deleteProject':
-                    duct.EVENT.PROJECT_DELETE,
-                'getProjectScheme':
-                    duct.EVENT.PROJECT_GET_SCHEME,
-                'createTemplate':
-                    duct.EVENT.PROJECT_ADD_TEMPLATE,
-                'deleteTemplate':
-                    duct.EVENT.PROJECT_DELETE_TEMPLATE,
-                'listTemplates':
-                    duct.EVENT.PROJECT_LIST_TEMPLATES,
-                'listTemplatePresets':
-                    duct.EVENT.PROJECT_LIST_TEMPLATE_PRESETS,
-                'listResponsesForProject':
-                    duct.EVENT.RESPONSE_LIST_FOR_PROJECT,
-                'listResponsesForTemplate':
-                    duct.EVENT.RESPONSE_LIST_FOR_TEMPLATE,
-                'listResponsesForNanotask':
-                    duct.EVENT.RESPONSE_LIST_FOR_NANOTASK,
-                'listResponsesForWorker':
-                    duct.EVENT.RESPONSE_LIST_FOR_WORKER,
-                'listResponsesForWorkSession':
-                    duct.EVENT.RESPONSE_LIST_FOR_WORK_SESSION,
-                'listProjectsWithResponses':
-                    duct.EVENT.RESPONSE_LIST_PROJECTS,
-                'listTemplatesWithResponses':
-                    duct.EVENT.RESPONSE_LIST_TEMPLATES,
-                'listNanotasksWithResponses':
-                    duct.EVENT.RESPONSE_LIST_NANOTASKS,
-                'listWorkersWithResponses':
-                    duct.EVENT.RESPONSE_LIST_WORKERS,
-                'listWorkSessionsWithResponses':
-                    duct.EVENT.RESPONSE_LIST_WORK_SESSIONS,
-                'listWorkersForProject':
-                    duct.EVENT.WORKER_GET_FOR_PLATFORM_WORKER_ID,
-                'listNanotasks':
-                    duct.EVENT.NANOTASK_LIST,
-                'createNanotasks':
-                    duct.EVENT.NANOTASK_ADD_MULTI_FOR_TEMPLATE,
-                'deleteNanotasks':
-                    duct.EVENT.NANOTASK_DELETE,
-                'createNanotaskGroup':
-                    duct.EVENT.NANOTASK_GROUP_ADD,
-                'listNanotaskGroups':
-                    duct.EVENT.NANOTASK_GROUP_LIST,
-                'getNanotaskGroup':
-                    duct.EVENT.NANOTASK_GROUP_GET,
-                'deleteNanotaskGroup':
-                    duct.EVENT.NANOTASK_GROUP_DELETE,
-                'listNodeSessionsForWorkSession':
-                    duct.EVENT.NODE_SESSION_LIST_FOR_WORK_SESSION,
-            };
-
-        this.registerHandlers('resource', listenerEventRelayMap);
-    }
-}
-
-class MTurkEventListener extends DuctEventListener {
-    constructor(duct) {
-        super(duct);
-
-        const listenerEventRelayMap = {
-                'getActiveCredentials':
-                    duct.EVENT.MARKETPLACE_MTURK_GET_ACTIVE_CREDENTIALS,
-                'setActiveCredentials':
-                    duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_CREDENTIALS,
-                'listCredentials':
-                    duct.EVENT.MARKETPLACE_MTURK_LIST_CREDENTIALS,
-                'getCredentials':
-                    duct.EVENT.MARKETPLACE_MTURK_GET_CREDENTIALS,
-                'deleteCredentials':
-                    duct.EVENT.MARKETPLACE_MTURK_DELETE_CREDENTIALS,
-                'renameCredentials':
-                    duct.EVENT.MARKETPLACE_MTURK_RENAME_CREDENTIALS,
-                'addCredentials':
-                    duct.EVENT.MARKETPLACE_MTURK_ADD_CREDENTIALS,
-                'setActiveSandboxMode':
-                    duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_SANDBOX_MODE,
-                'execBoto3':
-                    duct.EVENT.MARKETPLACE_MTURK_EXEC_BOTO3,
-                'listHITTypes':
-                    duct.EVENT.MARKETPLACE_MTURK_HIT_TYPE_LIST,
-                'listTuttiHITBatches':
-                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST,
-                'listTuttiHITBatchesWithHITs':
-                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST_WITH_HITS,
-                'createTuttiHITBatch':
-                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_CREATE,
-                'addHITsToTuttiHITBatch':
-                    duct.EVENT.MARKETPLACE_MTURK_HIT_ADD_FOR_TUTTI_HIT_BATCH,
-                'deleteTuttiHITBatch':
-                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_DELETE,
-                'listQualificationTypes':
-                    duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_LIST,
-                'createQualificationType':
-                    duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_CREATE,
-                'deleteQualificationTypes':
-                    duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_DELETE,
-                'associateQualificationsWithWorkers':
-                    duct.EVENT.MARKETPLACE_MTURK_WORKER_ASSOCIATE_QUALIFICATIONS,
-                'listHITsForTuttiHITBatch':
-                    duct.EVENT.MARKETPLACE_MTURK_HIT_LIST_FOR_TUTTI_HIT_BATCH,
-                'expireHITs':
-                    duct.EVENT.MARKETPLACE_MTURK_HIT_EXPIRE,
-                'deleteHITs':
-                    duct.EVENT.MARKETPLACE_MTURK_HIT_DELETE,
-                'listWorkers':
-                    duct.EVENT.MARKETPLACE_MTURK_WORKER_LIST,
-                'notifyWorkers':
-                    duct.EVENT.MARKETPLACE_MTURK_WORKER_NOTIFY,
-                'listAssignmentsForTuttiHITBatch':
-                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_LIST_FOR_TUTTI_HIT_BATCH,
-                'approveAssignments':
-                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_APPROVE,
-                'rejectAssignments':
-                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_REJECT,
-                'sendBonus':
-                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_SEND_BONUS,
-            };
-
-        this.registerHandlers('mturk', listenerEventRelayMap);
-    }
-}
-
-module.exports = {
-        ResourceEventListener,
-        MTurkEventListener,
-    };
-
-
-/***/ }),
-
-/***/ "./lib/tutti.js":
-/*!**********************!*\
-  !*** ./lib/tutti.js ***!
-  \**********************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
-const ducts = __webpack_require__(/*! @iflb/ducts-client */ "./node_modules/@iflb/ducts-client/lib/ducts.js");
-const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "./node_modules/@iflb/lib/lib/lib.js");
-const { ResourceEventListener, MTurkEventListener } = __webpack_require__(/*! ./listener.js */ "./lib/listener.js")
-const { ResourceController, MTurkController } = __webpack_require__(/*! ./controller.js */ "./lib/controller.js")
-
-class TuttiClient extends ThisBound {
-    constructor(setLogger = false) {
-        super();
-
-        this._duct = new ducts.Duct();
-        this._duct.logger = setLogger ? new DuctEventLogger() : null;
-        this._opened = false;
-        this._invokeOnOpenHandlers = [];
-
-        this.accountInfo = {
-            userName: null,
-            userId: null,
-            accessToken: null,
-        };
-        this.logger = this._duct.logger;
-
-        this._duct.invokeOnOpen(async () => {
-            this.resource = new ResourceController(this._duct);
-            this.resource.on = (new ResourceEventListener(this._duct)).on;
-
-            this.mturk = new MTurkController(this._duct);
-            this.mturk.on = (new MTurkEventListener(this._duct)).on;
-
-            this.connection = this._duct._connectionListener;
-
-            const wsd = await this.resource.getWebServiceDescriptor();
-            this.ENUM = wsd.enums;
-            this.ERROR = wsd.enums.errors;
-
-            this.resource.on('signIn', {
-                success: (data) => { this._setAccountInfo(data); }
-            });
-            this.resource.on('signOut', {
-                success: (data) => { this._deleteAccountInfo(); }
-            });
-
-            this._opened = true;
-            this._invokeOnOpenHandlers.forEach((f) => { f(); });
-        });
-    }
-
-    async open(self, wsdPath) {
-        self._duct = self._duct || new ducts.Duct();
-        await self._duct.open(wsdPath);
-    }
-
-    async reconnect(self) { await self._duct.reconnect(); }
-
-    close(self) { self._duct.close(); }
-
-    invokeOnOpen(self, f) {
-        if(self._opened) f();
-        else self._invokeOnOpenHandlers.push(f);
-    }
-
-    _setAccountInfo(self, data) {
-        self.accountInfo.userName = data.user_name;
-        self.accountInfo.userId = data.user_id;
-        self.accountInfo.accessToken = data.access_token;
-        self.resource._accessToken = self.accountInfo.accessToken;
-        self.mturk._accessToken = self.accountInfo.accessToken;
-    }
-
-    _deleteAccountInfo(self) {
-        self.accountInfo.userName = null;
-        self.accountInfo.userId = null;
-        self.accountInfo.accessToken = null;
-    }
-
-    get state() {
-        return this._duct ? this._duct.state : ducts.State.CLOSE;
-    }
-}
-
-class DuctEventLogger extends ThisBound {
-    constructor(duct, dataSizeLimit) {
-        super();
-        this._duct = duct;
-        this._log = {};
-        this._orderedLog = [];
-        this.dataSizeLimit = dataSizeLimit || 3000;
-    }
-
-    addSent(self, id, label, data) {
-        self._log[id] = {
-            id,
-            label,
-            sent: {
-                content: self._skipLargeData(data),
-                timestamp: new Date()
-            },
-            received: []
-        };
-        self._orderedLog.push(self._log[id]);
-    }
-
-    addReceived(self, id, label, data) {
-        if(!(id in self._log))
-            return;
-
-        if(self._log[id].label != label)
-            console.error(`event name ${label} does not correspond to the log`);
-
-        const _data = JSON.parse(JSON.stringify(data));
-        _data.content = self._skipLargeData(_data.content);
-        _data.timestamp = new Date();
-
-        self._log[id].received.push(_data);
-    }
-
-    _skipLargeData(self, data) {
-        if(data) {
-            let newData = JSON.stringify(data);
-            if(newData.length>self.dataSizeLimit) return '[log skipped]';
-            else return JSON.parse(newData);
-        } else {
-            return data;
-        }
-    }
-
-    get log() {
-        return this._orderedLog;
-    }
-}
-
-module.exports = {
-    TuttiClient
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/@iflb/ducts-client/lib/ducts.js":
-/*!******************************************************!*\
-  !*** ./node_modules/@iflb/ducts-client/lib/ducts.js ***!
-  \******************************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
+/***/ "../node_modules/@iflb/ducts-client/lib/ducts.js":
+/*!*******************************************************!*\
+  !*** ../node_modules/@iflb/ducts-client/lib/ducts.js ***!
+  \*******************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const MessagePack = __webpack_require__(/*! what-the-pack */ "../node_modules/what-the-pack/browser.js");
 const { encode, decode } = MessagePack.initialize(2**22);
-const WebSocket = __webpack_require__(/*! websocket */ "./node_modules/websocket/lib/browser.js").w3cwebsocket;
-const fetch = __webpack_require__(/*! node-fetch */ "./node_modules/node-fetch/browser.js");
-const getRandomValues = __webpack_require__(/*! get-random-values */ "./node_modules/get-random-values/index.js");
-const Buffer = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js").Buffer;
-const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "./node_modules/@iflb/lib/lib/lib.js");
+const WebSocket = __webpack_require__(/*! websocket */ "../node_modules/websocket/lib/browser.js").w3cwebsocket;
+const fetch = __webpack_require__(/*! node-fetch */ "../node_modules/node-fetch/browser.js");
+const getRandomValues = __webpack_require__(/*! get-random-values */ "../node_modules/get-random-values/index.js");
+const Buffer = __webpack_require__(/*! buffer */ "../node_modules/buffer/index.js").Buffer;
+const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "../node_modules/@iflb/lib/lib/lib.js");
 
 //https://github.com/necojackarc/extensible-custom-error/blob/master/src/index.js
 class DuctError extends Error {
@@ -1413,11 +479,11 @@ module.exports = {
 
 /***/ }),
 
-/***/ "./node_modules/@iflb/lib/lib/lib.js":
-/*!*******************************************!*\
-  !*** ./node_modules/@iflb/lib/lib/lib.js ***!
-  \*******************************************/
-/***/ (function(__unused_webpack_module, exports) {
+/***/ "../node_modules/@iflb/lib/lib/lib.js":
+/*!********************************************!*\
+  !*** ../node_modules/@iflb/lib/lib/lib.js ***!
+  \********************************************/
+/***/ ((__unused_webpack_module, exports) => {
 
 class ThisKeywordProhibitedError extends Error {}
 
@@ -1453,11 +519,11 @@ exports.ThisKeywordProhibitedError = ThisKeywordProhibitedError;
 
 /***/ }),
 
-/***/ "./node_modules/base64-js/index.js":
-/*!*****************************************!*\
-  !*** ./node_modules/base64-js/index.js ***!
-  \*****************************************/
-/***/ (function(__unused_webpack_module, exports) {
+/***/ "../node_modules/base64-js/index.js":
+/*!******************************************!*\
+  !*** ../node_modules/base64-js/index.js ***!
+  \******************************************/
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
@@ -1614,11 +680,11 @@ function fromByteArray (uint8) {
 
 /***/ }),
 
-/***/ "./node_modules/buffer/index.js":
-/*!**************************************!*\
-  !*** ./node_modules/buffer/index.js ***!
-  \**************************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ "../node_modules/buffer/index.js":
+/*!***************************************!*\
+  !*** ../node_modules/buffer/index.js ***!
+  \***************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 /*!
@@ -1631,8 +697,8 @@ function fromByteArray (uint8) {
 
 
 
-var base64 = __webpack_require__(/*! base64-js */ "./node_modules/base64-js/index.js")
-var ieee754 = __webpack_require__(/*! ieee754 */ "./node_modules/ieee754/index.js")
+var base64 = __webpack_require__(/*! base64-js */ "../node_modules/base64-js/index.js")
+var ieee754 = __webpack_require__(/*! ieee754 */ "../node_modules/ieee754/index.js")
 var customInspectSymbol =
   (typeof Symbol === 'function' && typeof Symbol['for'] === 'function') // eslint-disable-line dot-notation
     ? Symbol['for']('nodejs.util.inspect.custom') // eslint-disable-line dot-notation
@@ -3442,16 +2508,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/aes.js":
-/*!***************************************!*\
-  !*** ./node_modules/crypto-js/aes.js ***!
-  \***************************************/
+/***/ "../node_modules/crypto-js/aes.js":
+/*!****************************************!*\
+  !*** ../node_modules/crypto-js/aes.js ***!
+  \****************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "./node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "./node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "./node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "../node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "../node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "../node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -3678,16 +2744,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/cipher-core.js":
-/*!***********************************************!*\
-  !*** ./node_modules/crypto-js/cipher-core.js ***!
-  \***********************************************/
+/***/ "../node_modules/crypto-js/cipher-core.js":
+/*!************************************************!*\
+  !*** ../node_modules/crypto-js/cipher-core.js ***!
+  \************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./evpkdf */ "./node_modules/crypto-js/evpkdf.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./evpkdf */ "../node_modules/crypto-js/evpkdf.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -4570,10 +3636,10 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/core.js":
-/*!****************************************!*\
-  !*** ./node_modules/crypto-js/core.js ***!
-  \****************************************/
+/***/ "../node_modules/crypto-js/core.js":
+/*!*****************************************!*\
+  !*** ../node_modules/crypto-js/core.js ***!
+  \*****************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
@@ -4621,7 +3687,7 @@ var hexSliceLookupTable = (function () {
 	    // Native crypto import via require (NodeJS)
 	    if (!crypto && "function" === 'function') {
 	        try {
-	            crypto = __webpack_require__(/*! crypto */ "?9157");
+	            crypto = __webpack_require__(/*! crypto */ "?2268");
 	        } catch (err) {}
 	    }
 
@@ -5379,16 +4445,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/enc-base64.js":
-/*!**********************************************!*\
-  !*** ./node_modules/crypto-js/enc-base64.js ***!
-  \**********************************************/
+/***/ "../node_modules/crypto-js/enc-base64.js":
+/*!***********************************************!*\
+  !*** ../node_modules/crypto-js/enc-base64.js ***!
+  \***********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -5517,16 +4583,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/enc-base64url.js":
-/*!*************************************************!*\
-  !*** ./node_modules/crypto-js/enc-base64url.js ***!
-  \*************************************************/
+/***/ "../node_modules/crypto-js/enc-base64url.js":
+/*!**************************************************!*\
+  !*** ../node_modules/crypto-js/enc-base64url.js ***!
+  \**************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -5659,16 +4725,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/enc-utf16.js":
-/*!*********************************************!*\
-  !*** ./node_modules/crypto-js/enc-utf16.js ***!
-  \*********************************************/
+/***/ "../node_modules/crypto-js/enc-utf16.js":
+/*!**********************************************!*\
+  !*** ../node_modules/crypto-js/enc-utf16.js ***!
+  \**********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -5810,16 +4876,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/evpkdf.js":
-/*!******************************************!*\
-  !*** ./node_modules/crypto-js/evpkdf.js ***!
-  \******************************************/
+/***/ "../node_modules/crypto-js/evpkdf.js":
+/*!*******************************************!*\
+  !*** ../node_modules/crypto-js/evpkdf.js ***!
+  \*******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./sha1 */ "./node_modules/crypto-js/sha1.js"), __webpack_require__(/*! ./hmac */ "./node_modules/crypto-js/hmac.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./sha1 */ "../node_modules/crypto-js/sha1.js"), __webpack_require__(/*! ./hmac */ "../node_modules/crypto-js/hmac.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -5946,16 +5012,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/format-hex.js":
-/*!**********************************************!*\
-  !*** ./node_modules/crypto-js/format-hex.js ***!
-  \**********************************************/
+/***/ "../node_modules/crypto-js/format-hex.js":
+/*!***********************************************!*\
+  !*** ../node_modules/crypto-js/format-hex.js ***!
+  \***********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6014,16 +5080,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/hmac.js":
-/*!****************************************!*\
-  !*** ./node_modules/crypto-js/hmac.js ***!
-  \****************************************/
+/***/ "../node_modules/crypto-js/hmac.js":
+/*!*****************************************!*\
+  !*** ../node_modules/crypto-js/hmac.js ***!
+  \*****************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6159,16 +5225,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/index.js":
-/*!*****************************************!*\
-  !*** ./node_modules/crypto-js/index.js ***!
-  \*****************************************/
+/***/ "../node_modules/crypto-js/index.js":
+/*!******************************************!*\
+  !*** ../node_modules/crypto-js/index.js ***!
+  \******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "./node_modules/crypto-js/x64-core.js"), __webpack_require__(/*! ./lib-typedarrays */ "./node_modules/crypto-js/lib-typedarrays.js"), __webpack_require__(/*! ./enc-utf16 */ "./node_modules/crypto-js/enc-utf16.js"), __webpack_require__(/*! ./enc-base64 */ "./node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./enc-base64url */ "./node_modules/crypto-js/enc-base64url.js"), __webpack_require__(/*! ./md5 */ "./node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./sha1 */ "./node_modules/crypto-js/sha1.js"), __webpack_require__(/*! ./sha256 */ "./node_modules/crypto-js/sha256.js"), __webpack_require__(/*! ./sha224 */ "./node_modules/crypto-js/sha224.js"), __webpack_require__(/*! ./sha512 */ "./node_modules/crypto-js/sha512.js"), __webpack_require__(/*! ./sha384 */ "./node_modules/crypto-js/sha384.js"), __webpack_require__(/*! ./sha3 */ "./node_modules/crypto-js/sha3.js"), __webpack_require__(/*! ./ripemd160 */ "./node_modules/crypto-js/ripemd160.js"), __webpack_require__(/*! ./hmac */ "./node_modules/crypto-js/hmac.js"), __webpack_require__(/*! ./pbkdf2 */ "./node_modules/crypto-js/pbkdf2.js"), __webpack_require__(/*! ./evpkdf */ "./node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"), __webpack_require__(/*! ./mode-cfb */ "./node_modules/crypto-js/mode-cfb.js"), __webpack_require__(/*! ./mode-ctr */ "./node_modules/crypto-js/mode-ctr.js"), __webpack_require__(/*! ./mode-ctr-gladman */ "./node_modules/crypto-js/mode-ctr-gladman.js"), __webpack_require__(/*! ./mode-ofb */ "./node_modules/crypto-js/mode-ofb.js"), __webpack_require__(/*! ./mode-ecb */ "./node_modules/crypto-js/mode-ecb.js"), __webpack_require__(/*! ./pad-ansix923 */ "./node_modules/crypto-js/pad-ansix923.js"), __webpack_require__(/*! ./pad-iso10126 */ "./node_modules/crypto-js/pad-iso10126.js"), __webpack_require__(/*! ./pad-iso97971 */ "./node_modules/crypto-js/pad-iso97971.js"), __webpack_require__(/*! ./pad-zeropadding */ "./node_modules/crypto-js/pad-zeropadding.js"), __webpack_require__(/*! ./pad-nopadding */ "./node_modules/crypto-js/pad-nopadding.js"), __webpack_require__(/*! ./format-hex */ "./node_modules/crypto-js/format-hex.js"), __webpack_require__(/*! ./aes */ "./node_modules/crypto-js/aes.js"), __webpack_require__(/*! ./tripledes */ "./node_modules/crypto-js/tripledes.js"), __webpack_require__(/*! ./rc4 */ "./node_modules/crypto-js/rc4.js"), __webpack_require__(/*! ./rabbit */ "./node_modules/crypto-js/rabbit.js"), __webpack_require__(/*! ./rabbit-legacy */ "./node_modules/crypto-js/rabbit-legacy.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "../node_modules/crypto-js/x64-core.js"), __webpack_require__(/*! ./lib-typedarrays */ "../node_modules/crypto-js/lib-typedarrays.js"), __webpack_require__(/*! ./enc-utf16 */ "../node_modules/crypto-js/enc-utf16.js"), __webpack_require__(/*! ./enc-base64 */ "../node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./enc-base64url */ "../node_modules/crypto-js/enc-base64url.js"), __webpack_require__(/*! ./md5 */ "../node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./sha1 */ "../node_modules/crypto-js/sha1.js"), __webpack_require__(/*! ./sha256 */ "../node_modules/crypto-js/sha256.js"), __webpack_require__(/*! ./sha224 */ "../node_modules/crypto-js/sha224.js"), __webpack_require__(/*! ./sha512 */ "../node_modules/crypto-js/sha512.js"), __webpack_require__(/*! ./sha384 */ "../node_modules/crypto-js/sha384.js"), __webpack_require__(/*! ./sha3 */ "../node_modules/crypto-js/sha3.js"), __webpack_require__(/*! ./ripemd160 */ "../node_modules/crypto-js/ripemd160.js"), __webpack_require__(/*! ./hmac */ "../node_modules/crypto-js/hmac.js"), __webpack_require__(/*! ./pbkdf2 */ "../node_modules/crypto-js/pbkdf2.js"), __webpack_require__(/*! ./evpkdf */ "../node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"), __webpack_require__(/*! ./mode-cfb */ "../node_modules/crypto-js/mode-cfb.js"), __webpack_require__(/*! ./mode-ctr */ "../node_modules/crypto-js/mode-ctr.js"), __webpack_require__(/*! ./mode-ctr-gladman */ "../node_modules/crypto-js/mode-ctr-gladman.js"), __webpack_require__(/*! ./mode-ofb */ "../node_modules/crypto-js/mode-ofb.js"), __webpack_require__(/*! ./mode-ecb */ "../node_modules/crypto-js/mode-ecb.js"), __webpack_require__(/*! ./pad-ansix923 */ "../node_modules/crypto-js/pad-ansix923.js"), __webpack_require__(/*! ./pad-iso10126 */ "../node_modules/crypto-js/pad-iso10126.js"), __webpack_require__(/*! ./pad-iso97971 */ "../node_modules/crypto-js/pad-iso97971.js"), __webpack_require__(/*! ./pad-zeropadding */ "../node_modules/crypto-js/pad-zeropadding.js"), __webpack_require__(/*! ./pad-nopadding */ "../node_modules/crypto-js/pad-nopadding.js"), __webpack_require__(/*! ./format-hex */ "../node_modules/crypto-js/format-hex.js"), __webpack_require__(/*! ./aes */ "../node_modules/crypto-js/aes.js"), __webpack_require__(/*! ./tripledes */ "../node_modules/crypto-js/tripledes.js"), __webpack_require__(/*! ./rc4 */ "../node_modules/crypto-js/rc4.js"), __webpack_require__(/*! ./rabbit */ "../node_modules/crypto-js/rabbit.js"), __webpack_require__(/*! ./rabbit-legacy */ "../node_modules/crypto-js/rabbit-legacy.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6179,16 +5245,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/lib-typedarrays.js":
-/*!***************************************************!*\
-  !*** ./node_modules/crypto-js/lib-typedarrays.js ***!
-  \***************************************************/
+/***/ "../node_modules/crypto-js/lib-typedarrays.js":
+/*!****************************************************!*\
+  !*** ../node_modules/crypto-js/lib-typedarrays.js ***!
+  \****************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6257,16 +5323,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/md5.js":
-/*!***************************************!*\
-  !*** ./node_modules/crypto-js/md5.js ***!
-  \***************************************/
+/***/ "../node_modules/crypto-js/md5.js":
+/*!****************************************!*\
+  !*** ../node_modules/crypto-js/md5.js ***!
+  \****************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6527,16 +5593,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/mode-cfb.js":
-/*!********************************************!*\
-  !*** ./node_modules/crypto-js/mode-cfb.js ***!
-  \********************************************/
+/***/ "../node_modules/crypto-js/mode-cfb.js":
+/*!*********************************************!*\
+  !*** ../node_modules/crypto-js/mode-cfb.js ***!
+  \*********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6609,16 +5675,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/mode-ctr-gladman.js":
-/*!****************************************************!*\
-  !*** ./node_modules/crypto-js/mode-ctr-gladman.js ***!
-  \****************************************************/
+/***/ "../node_modules/crypto-js/mode-ctr-gladman.js":
+/*!*****************************************************!*\
+  !*** ../node_modules/crypto-js/mode-ctr-gladman.js ***!
+  \*****************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6727,16 +5793,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/mode-ctr.js":
-/*!********************************************!*\
-  !*** ./node_modules/crypto-js/mode-ctr.js ***!
-  \********************************************/
+/***/ "../node_modules/crypto-js/mode-ctr.js":
+/*!*********************************************!*\
+  !*** ../node_modules/crypto-js/mode-ctr.js ***!
+  \*********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6787,16 +5853,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/mode-ecb.js":
-/*!********************************************!*\
-  !*** ./node_modules/crypto-js/mode-ecb.js ***!
-  \********************************************/
+/***/ "../node_modules/crypto-js/mode-ecb.js":
+/*!*********************************************!*\
+  !*** ../node_modules/crypto-js/mode-ecb.js ***!
+  \*********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6829,16 +5895,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/mode-ofb.js":
-/*!********************************************!*\
-  !*** ./node_modules/crypto-js/mode-ofb.js ***!
-  \********************************************/
+/***/ "../node_modules/crypto-js/mode-ofb.js":
+/*!*********************************************!*\
+  !*** ../node_modules/crypto-js/mode-ofb.js ***!
+  \*********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6885,16 +5951,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/pad-ansix923.js":
-/*!************************************************!*\
-  !*** ./node_modules/crypto-js/pad-ansix923.js ***!
-  \************************************************/
+/***/ "../node_modules/crypto-js/pad-ansix923.js":
+/*!*************************************************!*\
+  !*** ../node_modules/crypto-js/pad-ansix923.js ***!
+  \*************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6936,16 +6002,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/pad-iso10126.js":
-/*!************************************************!*\
-  !*** ./node_modules/crypto-js/pad-iso10126.js ***!
-  \************************************************/
+/***/ "../node_modules/crypto-js/pad-iso10126.js":
+/*!*************************************************!*\
+  !*** ../node_modules/crypto-js/pad-iso10126.js ***!
+  \*************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -6982,16 +6048,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/pad-iso97971.js":
-/*!************************************************!*\
-  !*** ./node_modules/crypto-js/pad-iso97971.js ***!
-  \************************************************/
+/***/ "../node_modules/crypto-js/pad-iso97971.js":
+/*!*************************************************!*\
+  !*** ../node_modules/crypto-js/pad-iso97971.js ***!
+  \*************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -7024,16 +6090,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/pad-nopadding.js":
-/*!*************************************************!*\
-  !*** ./node_modules/crypto-js/pad-nopadding.js ***!
-  \*************************************************/
+/***/ "../node_modules/crypto-js/pad-nopadding.js":
+/*!**************************************************!*\
+  !*** ../node_modules/crypto-js/pad-nopadding.js ***!
+  \**************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -7056,16 +6122,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/pad-zeropadding.js":
-/*!***************************************************!*\
-  !*** ./node_modules/crypto-js/pad-zeropadding.js ***!
-  \***************************************************/
+/***/ "../node_modules/crypto-js/pad-zeropadding.js":
+/*!****************************************************!*\
+  !*** ../node_modules/crypto-js/pad-zeropadding.js ***!
+  \****************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -7105,16 +6171,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/pbkdf2.js":
-/*!******************************************!*\
-  !*** ./node_modules/crypto-js/pbkdf2.js ***!
-  \******************************************/
+/***/ "../node_modules/crypto-js/pbkdf2.js":
+/*!*******************************************!*\
+  !*** ../node_modules/crypto-js/pbkdf2.js ***!
+  \*******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./sha1 */ "./node_modules/crypto-js/sha1.js"), __webpack_require__(/*! ./hmac */ "./node_modules/crypto-js/hmac.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./sha1 */ "../node_modules/crypto-js/sha1.js"), __webpack_require__(/*! ./hmac */ "../node_modules/crypto-js/hmac.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -7252,16 +6318,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/rabbit-legacy.js":
-/*!*************************************************!*\
-  !*** ./node_modules/crypto-js/rabbit-legacy.js ***!
-  \*************************************************/
+/***/ "../node_modules/crypto-js/rabbit-legacy.js":
+/*!**************************************************!*\
+  !*** ../node_modules/crypto-js/rabbit-legacy.js ***!
+  \**************************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "./node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "./node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "./node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "../node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "../node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "../node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -7444,16 +6510,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/rabbit.js":
-/*!******************************************!*\
-  !*** ./node_modules/crypto-js/rabbit.js ***!
-  \******************************************/
+/***/ "../node_modules/crypto-js/rabbit.js":
+/*!*******************************************!*\
+  !*** ../node_modules/crypto-js/rabbit.js ***!
+  \*******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "./node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "./node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "./node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "../node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "../node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "../node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -7638,16 +6704,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/rc4.js":
-/*!***************************************!*\
-  !*** ./node_modules/crypto-js/rc4.js ***!
-  \***************************************/
+/***/ "../node_modules/crypto-js/rc4.js":
+/*!****************************************!*\
+  !*** ../node_modules/crypto-js/rc4.js ***!
+  \****************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "./node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "./node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "./node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "../node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "../node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "../node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -7779,16 +6845,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/ripemd160.js":
-/*!*********************************************!*\
-  !*** ./node_modules/crypto-js/ripemd160.js ***!
-  \*********************************************/
+/***/ "../node_modules/crypto-js/ripemd160.js":
+/*!**********************************************!*\
+  !*** ../node_modules/crypto-js/ripemd160.js ***!
+  \**********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -8048,16 +7114,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/sha1.js":
-/*!****************************************!*\
-  !*** ./node_modules/crypto-js/sha1.js ***!
-  \****************************************/
+/***/ "../node_modules/crypto-js/sha1.js":
+/*!*****************************************!*\
+  !*** ../node_modules/crypto-js/sha1.js ***!
+  \*****************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -8200,16 +7266,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/sha224.js":
-/*!******************************************!*\
-  !*** ./node_modules/crypto-js/sha224.js ***!
-  \******************************************/
+/***/ "../node_modules/crypto-js/sha224.js":
+/*!*******************************************!*\
+  !*** ../node_modules/crypto-js/sha224.js ***!
+  \*******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./sha256 */ "./node_modules/crypto-js/sha256.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./sha256 */ "../node_modules/crypto-js/sha256.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -8282,16 +7348,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/sha256.js":
-/*!******************************************!*\
-  !*** ./node_modules/crypto-js/sha256.js ***!
-  \******************************************/
+/***/ "../node_modules/crypto-js/sha256.js":
+/*!*******************************************!*\
+  !*** ../node_modules/crypto-js/sha256.js ***!
+  \*******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -8483,16 +7549,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/sha3.js":
-/*!****************************************!*\
-  !*** ./node_modules/crypto-js/sha3.js ***!
-  \****************************************/
+/***/ "../node_modules/crypto-js/sha3.js":
+/*!*****************************************!*\
+  !*** ../node_modules/crypto-js/sha3.js ***!
+  \*****************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "./node_modules/crypto-js/x64-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "../node_modules/crypto-js/x64-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -8811,16 +7877,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/sha384.js":
-/*!******************************************!*\
-  !*** ./node_modules/crypto-js/sha384.js ***!
-  \******************************************/
+/***/ "../node_modules/crypto-js/sha384.js":
+/*!*******************************************!*\
+  !*** ../node_modules/crypto-js/sha384.js ***!
+  \*******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "./node_modules/crypto-js/x64-core.js"), __webpack_require__(/*! ./sha512 */ "./node_modules/crypto-js/sha512.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "../node_modules/crypto-js/x64-core.js"), __webpack_require__(/*! ./sha512 */ "../node_modules/crypto-js/sha512.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -8896,16 +7962,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/sha512.js":
-/*!******************************************!*\
-  !*** ./node_modules/crypto-js/sha512.js ***!
-  \******************************************/
+/***/ "../node_modules/crypto-js/sha512.js":
+/*!*******************************************!*\
+  !*** ../node_modules/crypto-js/sha512.js ***!
+  \*******************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "./node_modules/crypto-js/x64-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./x64-core */ "../node_modules/crypto-js/x64-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -9224,16 +8290,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/tripledes.js":
-/*!*********************************************!*\
-  !*** ./node_modules/crypto-js/tripledes.js ***!
-  \*********************************************/
+/***/ "../node_modules/crypto-js/tripledes.js":
+/*!**********************************************!*\
+  !*** ../node_modules/crypto-js/tripledes.js ***!
+  \**********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory, undef) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "./node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "./node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "./node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "./node_modules/crypto-js/cipher-core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"), __webpack_require__(/*! ./enc-base64 */ "../node_modules/crypto-js/enc-base64.js"), __webpack_require__(/*! ./md5 */ "../node_modules/crypto-js/md5.js"), __webpack_require__(/*! ./evpkdf */ "../node_modules/crypto-js/evpkdf.js"), __webpack_require__(/*! ./cipher-core */ "../node_modules/crypto-js/cipher-core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -10005,16 +9071,16 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/crypto-js/x64-core.js":
-/*!********************************************!*\
-  !*** ./node_modules/crypto-js/x64-core.js ***!
-  \********************************************/
+/***/ "../node_modules/crypto-js/x64-core.js":
+/*!*********************************************!*\
+  !*** ../node_modules/crypto-js/x64-core.js ***!
+  \*********************************************/
 /***/ (function(module, exports, __webpack_require__) {
 
 ;(function (root, factory) {
 	if (true) {
 		// CommonJS
-		module.exports = exports = factory(__webpack_require__(/*! ./core */ "./node_modules/crypto-js/core.js"));
+		module.exports = exports = factory(__webpack_require__(/*! ./core */ "../node_modules/crypto-js/core.js"));
 	}
 	else {}
 }(this, function (CryptoJS) {
@@ -10311,11 +9377,11 @@ var hexSliceLookupTable = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/es5-ext/global.js":
-/*!****************************************!*\
-  !*** ./node_modules/es5-ext/global.js ***!
-  \****************************************/
-/***/ (function(module) {
+/***/ "../node_modules/es5-ext/global.js":
+/*!*****************************************!*\
+  !*** ../node_modules/es5-ext/global.js ***!
+  \*****************************************/
+/***/ ((module) => {
 
 var naiveFallback = function () {
 	if (typeof self === "object" && self) return self;
@@ -10356,14 +9422,14 @@ module.exports = (function () {
 
 /***/ }),
 
-/***/ "./node_modules/get-random-values/index.js":
-/*!*************************************************!*\
-  !*** ./node_modules/get-random-values/index.js ***!
-  \*************************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ "../node_modules/get-random-values/index.js":
+/*!**************************************************!*\
+  !*** ../node_modules/get-random-values/index.js ***!
+  \**************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var window = __webpack_require__(/*! global/window */ "./node_modules/global/window.js");
-var nodeCrypto = __webpack_require__(/*! crypto */ "?91e5");
+var window = __webpack_require__(/*! global/window */ "../node_modules/global/window.js");
+var nodeCrypto = __webpack_require__(/*! crypto */ "?a3b0");
 
 function getRandomValues(buf) {
   if (window.crypto && window.crypto.getRandomValues) {
@@ -10399,11 +9465,11 @@ module.exports = getRandomValues;
 
 /***/ }),
 
-/***/ "./node_modules/global/window.js":
-/*!***************************************!*\
-  !*** ./node_modules/global/window.js ***!
-  \***************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ "../node_modules/global/window.js":
+/*!****************************************!*\
+  !*** ../node_modules/global/window.js ***!
+  \****************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 var win;
 
@@ -10422,11 +9488,11 @@ module.exports = win;
 
 /***/ }),
 
-/***/ "./node_modules/ieee754/index.js":
-/*!***************************************!*\
-  !*** ./node_modules/ieee754/index.js ***!
-  \***************************************/
-/***/ (function(__unused_webpack_module, exports) {
+/***/ "../node_modules/ieee754/index.js":
+/*!****************************************!*\
+  !*** ../node_modules/ieee754/index.js ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, exports) => {
 
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
@@ -10517,11 +9583,11 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
 /***/ }),
 
-/***/ "./node_modules/node-fetch/browser.js":
-/*!********************************************!*\
-  !*** ./node_modules/node-fetch/browser.js ***!
-  \********************************************/
-/***/ (function(module, exports) {
+/***/ "../node_modules/node-fetch/browser.js":
+/*!*********************************************!*\
+  !*** ../node_modules/node-fetch/browser.js ***!
+  \*********************************************/
+/***/ ((module, exports) => {
 
 "use strict";
 
@@ -10552,11 +9618,11 @@ exports.Response = global.Response;
 
 /***/ }),
 
-/***/ "./node_modules/pretty-bytes/index.js":
-/*!********************************************!*\
-  !*** ./node_modules/pretty-bytes/index.js ***!
-  \********************************************/
-/***/ (function(module) {
+/***/ "../node_modules/pretty-bytes/index.js":
+/*!*********************************************!*\
+  !*** ../node_modules/pretty-bytes/index.js ***!
+  \*********************************************/
+/***/ ((module) => {
 
 "use strict";
 
@@ -10681,18 +9747,18 @@ module.exports = (number, options) => {
 
 /***/ }),
 
-/***/ "./node_modules/websocket/lib/browser.js":
-/*!***********************************************!*\
-  !*** ./node_modules/websocket/lib/browser.js ***!
-  \***********************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ "../node_modules/websocket/lib/browser.js":
+/*!************************************************!*\
+  !*** ../node_modules/websocket/lib/browser.js ***!
+  \************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 var _globalThis;
 if (typeof globalThis === 'object') {
 	_globalThis = globalThis;
 } else {
 	try {
-		_globalThis = __webpack_require__(/*! es5-ext/global */ "./node_modules/es5-ext/global.js");
+		_globalThis = __webpack_require__(/*! es5-ext/global */ "../node_modules/es5-ext/global.js");
 	} catch (error) {
 	} finally {
 		if (!_globalThis && typeof window !== 'undefined') { _globalThis = window; }
@@ -10701,7 +9767,7 @@ if (typeof globalThis === 'object') {
 }
 
 var NativeWebSocket = _globalThis.WebSocket || _globalThis.MozWebSocket;
-var websocket_version = __webpack_require__(/*! ./version */ "./node_modules/websocket/lib/version.js");
+var websocket_version = __webpack_require__(/*! ./version */ "../node_modules/websocket/lib/version.js");
 
 
 /**
@@ -10745,28 +9811,28 @@ module.exports = {
 
 /***/ }),
 
-/***/ "./node_modules/websocket/lib/version.js":
-/*!***********************************************!*\
-  !*** ./node_modules/websocket/lib/version.js ***!
-  \***********************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ "../node_modules/websocket/lib/version.js":
+/*!************************************************!*\
+  !*** ../node_modules/websocket/lib/version.js ***!
+  \************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-module.exports = __webpack_require__(/*! ../package.json */ "./node_modules/websocket/package.json").version;
+module.exports = __webpack_require__(/*! ../package.json */ "../node_modules/websocket/package.json").version;
 
 
 /***/ }),
 
-/***/ "./node_modules/what-the-pack/browser.js":
-/*!***********************************************!*\
-  !*** ./node_modules/what-the-pack/browser.js ***!
-  \***********************************************/
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+/***/ "../node_modules/what-the-pack/browser.js":
+/*!************************************************!*\
+  !*** ../node_modules/what-the-pack/browser.js ***!
+  \************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 /* eslint-disable no-console */
 
-const pb = __webpack_require__(/*! pretty-bytes */ "./node_modules/pretty-bytes/index.js");
-const Buffer = __webpack_require__(/*! buffer */ "./node_modules/buffer/index.js").Buffer;
+const pb = __webpack_require__(/*! pretty-bytes */ "../node_modules/pretty-bytes/index.js");
+const Buffer = __webpack_require__(/*! buffer */ "../node_modules/buffer/index.js").Buffer;
 
 const initialize = (tempBufferLength, logFunction) => {
   if (typeof tempBufferLength !== 'number' || Number.isNaN(tempBufferLength) === true) {
@@ -11330,31 +10396,965 @@ module.exports = { initialize, Buffer };
 
 /***/ }),
 
-/***/ "?9157":
+/***/ "./index.js":
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+module.exports = __webpack_require__(/*! ./lib/tutti */ "./lib/tutti.js");
+
+
+/***/ }),
+
+/***/ "./lib/controller.js":
+/*!***************************!*\
+  !*** ./lib/controller.js ***!
+  \***************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "../node_modules/@iflb/lib/lib/lib.js");
+const { TuttiServerEventError } = __webpack_require__(/*! ./error.js */ "./lib/error.js");
+const CryptoJS = __webpack_require__(/*! crypto-js */ "../node_modules/crypto-js/index.js");
+
+class TuttiController extends ThisBound {
+    constructor( duct ){
+        super();
+        this._duct = duct;
+        this._accessToken = null;
+        this._callIds = {};
+    }
+
+    _setMethods(self, methods) {
+        Object.entries(methods).forEach(([name, f]) => {
+            self[name] =
+                (args = {}, { awaited = true } = {}) => {
+                    return f(args, self._accessToken, awaited, name)
+                };
+            self[name].call =
+                (args = {}) => {
+                    return f(args, self._accessToken, true, name);
+                };
+            self[name].send =
+                (args = {}) => {
+                    return f(args, self._accessToken, false, name);
+                };
+        });
+        self._callIds = Object.fromEntries(Object.keys(methods).map((name) => [name, 0]));
+    }
+
+    _callOrSend(self, eid, args, [rawArgs, accessToken, awaited, methodName]) {
+        const send = (eid, args) => {
+            const rid = self._duct.nextRid();
+            const data = self._data(args);
+
+            self._duct.logger.addSent(rid, methodName, data);
+
+            return self._duct.send( rid, eid, data );
+        };
+
+        const called = async (eid, args) => {
+            const data = self._data(args);
+            let { success, content } = await self._duct.call( eid, data );
+
+            self._duct.logger.addSent(`${methodName}${self._callIds[methodName]}`, methodName, data);
+            self._duct.logger.addReceived(`${methodName}${self._callIds[methodName]}`, methodName, { success, content });
+
+            if(success) return content; else throw new TuttiServerEventError(content);
+        };
+
+        if(typeof(args)!=='object') 
+            throw 'Tutti args must be passed as object';
+
+        const paramsPossiblyUndefined =
+            Object.entries(rawArgs)
+                .filter(([key,]) => Object.keys(args).indexOf(key)===-1)
+                .map(([key,]) => key);
+
+        if(paramsPossiblyUndefined.length>0)
+            console.warn(`Possibly undefined parameter(s): ${paramsPossiblyUndefined}`);
+
+        if(accessToken)
+            args.access_token = accessToken;
+
+        const f = awaited ? called : send;
+        return f(eid, args)
+    }
+
+    _data(self, data) {
+        const camelToSnake = str => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        for(const d of Object.entries(data)) {
+            delete data[d[0]];
+            if(d[1]!==undefined) data[camelToSnake(d[0])] = d[1];
+        }
+        return data;
+    }
+}
+
+class MTurkController extends TuttiController {
+    constructor(duct){
+        super(duct);
+
+        let self = this;
+
+        this._setMethods({
+            getActiveCredentials() {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_GET_ACTIVE_CREDENTIALS,
+                            {}, arguments
+                        );
+                },
+            setActiveCredentials({ credentials_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_CREDENTIALS,
+                            { credentials_id }, arguments
+                        );
+                }, 
+            listCredentials() {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_LIST_CREDENTIALS,
+                            {}, arguments
+                        );
+                }, 
+            getCredentials({ credentials_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_GET_CREDENTIALS,
+                            { credentials_id }, arguments
+                        );
+                }, 
+            deleteCredentials({ credentials_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_DELETE_CREDENTIALS,
+                            { credentials_id }, arguments
+                        );
+                }, 
+            renameCredentials({ credentials_id, label }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_RENAME_CREDENTIALS,
+                            { credentials_id, label }, arguments
+                        );
+                }, 
+            addCredentials({ access_key_id, secret_access_key, label }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_ADD_CREDENTIALS,
+                            { access_key_id, secret_access_key, label }, arguments
+                        );
+                }, 
+            setActiveSandboxMode({ is_sandbox }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_SANDBOX_MODE,
+                            { is_sandbox }, arguments
+                        );
+                },
+            execBoto3({ method, parameters }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_EXEC_BOTO3,
+                            { method, parameters }, arguments
+                        );
+                },
+            expireHITs({ request_id, hit_ids }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_EXPIRE,
+                            { request_id, hit_ids }, arguments
+                        );
+                },
+            deleteHITs({ request_id, hit_ids }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_DELETE,
+                            { request_id, hit_ids }, arguments
+                        );
+                },
+            listHITsForTuttiHITBatch({ batch_id, cached }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_LIST_FOR_TUTTI_HIT_BATCH,
+                            { batch_id, cached }, arguments
+                        );
+                },
+            listTuttiHITBatches() {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST,
+                            {}, arguments
+                        );
+                },
+            listTuttiHITBatchesWithHITs() {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST_WITH_HITS,
+                            {}, arguments
+                        );
+                },
+            createTuttiHITBatch({ name, project_name, hit_type_params, hit_params, num_hits }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_CREATE,
+                            { name, project_name, hit_type_params, hit_params, num_hits }, arguments
+                        );
+                },
+            addHITsToTuttiHITBatch({ batch_id, hit_params, num_hits }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_ADD_FOR_TUTTI_HIT_BATCH,
+                            { batch_id, hit_params, num_hits }, arguments
+                        );
+                },
+            deleteTuttiHITBatch({ request_id, batch_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_DELETE,
+                            { request_id, batch_id }, arguments
+                        );
+                },
+            listHITTypes() {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_HIT_TYPE_LIST,
+                            {}, arguments
+                        );
+                },
+            listQualificationTypes({ query, only_user_defined, cached }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_LIST,
+                            { query, only_user_defined, cached }, arguments
+                        );
+                },
+            createQualificationType({ name, description, auto_granted, qualification_type_status }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_CREATE,
+                            { name, description, auto_granted, qualification_type_status }, arguments
+                        );
+                },
+            deleteQualificationTypes({ qualification_type_ids }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_DELETE,
+                            { qualification_type_ids }, arguments
+                        );
+                },
+            listWorkers() {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_WORKER_LIST,
+                            {}, arguments
+                        );
+                },
+            notifyWorkers({ subject, message_text, worker_ids }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_WORKER_NOTIFY,
+                            { subject, message_text, worker_ids }, arguments
+                        );
+                },
+            associateQualificationsWithWorkers({ qualification_type_id, worker_ids, integer_value, send_notification }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_WORKER_ASSOCIATE_QUALIFICATIONS,
+                            { qualification_type_id, worker_ids, integer_value, send_notification }, arguments
+                        );
+                },
+            listAssignmentsForTuttiHITBatch({ batch_id, cached }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_LIST_FOR_TUTTI_HIT_BATCH,
+                            { batch_id, cached }, arguments
+                        );
+                },
+            approveAssignments({ assignment_ids, requester_feedback, override_rejection }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_APPROVE,
+                            { assignment_ids, requester_feedback, override_rejection }, arguments
+                        );
+                },
+            rejectAssignments({ assignment_ids, requester_feedback }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_REJECT,
+                            { assignment_ids, requester_feedback }, arguments
+                        );
+                },
+            sendBonus({ worker_ids, bonus_amount, assignment_ids, reason }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_SEND_BONUS,
+                            { worker_ids, bonus_amount, assignment_ids, reason }, arguments
+                        );
+                },
+        });
+    }
+}
+
+class ResourceController extends TuttiController {
+    constructor(duct){
+        super(duct);
+        let self = this;
+
+        this._setMethods({
+            getWebServiceDescriptor() {
+                    return self._callOrSend(
+                            self._duct.EVENT.SYSTEM_GET_WSD,
+                            {}, arguments
+                        );
+                },
+            signUp({ user_name, password, privilege_ids }) {
+                    const password_hash = CryptoJS.MD5(password).toString();
+                    return self._callOrSend(
+                            self._duct.EVENT.AUTHENTICATION_SIGN_UP,
+                            { user_name, password_hash, privilege_ids }, arguments
+                        );
+                },
+            signIn({ user_name = null, password_hash = null, access_token = null, ...args }) {
+                    if('password' in args) {
+                        password_hash = CryptoJS.MD5(args.password).toString();
+                        delete arguments[0].password;
+                    }
+                    return self._callOrSend(
+                            self._duct.EVENT.AUTHENTICATION_SIGN_IN,
+                            { user_name, password_hash, access_token }, arguments
+                        );
+                },
+            signOut() {
+                    return self._callOrSend(
+                            self._duct.EVENT.AUTHENTICATION_SIGN_OUT,
+                            {}, arguments
+                        );
+                },
+            getUserIds() {
+                    return self._callOrSend(
+                            self._duct.EVENT.ACCOUNT_LIST_IDS,
+                            {}, arguments
+                        );
+                },
+            deleteAccount({ user_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.ACCOUNT_DELETE,
+                            { user_id }, arguments
+                        );
+                },
+            checkProjectDiff({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.SYSTEM_BUILD_CHECK_PROJECT_DIFF,
+                            { project_name }, arguments
+                        );
+                },
+            rebuildProject({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.SYSTEM_BUILD_REBUILD_PROJECT,
+                            { project_name }, arguments
+                        );
+                },
+            listProjects() {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_LIST,
+                            {}, arguments
+                        );
+                },
+            createProject({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_ADD,
+                            { project_name }, arguments
+                        );
+                },
+            deleteProject({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_DELETE,
+                            { project_name }, arguments
+                        );
+                },
+            getProjectScheme({ project_name, cached }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_GET_SCHEME,
+                            { project_name, cached }, arguments
+                        );
+                },
+            createTemplate({ project_name, template_name, preset_group_name, preset_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_ADD_TEMPLATE,
+                            { project_name, template_name, preset_group_name, preset_name }, arguments
+                        );
+                },
+            deleteTemplate({ project_name, template_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_DELETE_TEMPLATE,
+                            { project_name, template_name }, arguments
+                        );
+                },
+            listTemplates({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_LIST_TEMPLATES,
+                            { project_name }, arguments
+                        );
+                },
+            listTemplatePresets({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_LIST_TEMPLATE_PRESETS,
+                            { project_name }, arguments
+                        );
+                },
+            listResponsesForProject({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_FOR_PROJECT,
+                            { project_name }, arguments
+                        );
+                },
+            listResponsesForTemplate({ project_name, template_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_FOR_TEMPLATE,
+                            { project_name, template_name }, arguments
+                        );
+                },
+            listResponsesForNanotask({ nanotask_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_FOR_NANOTASK,
+                            { nanotask_id }, arguments
+                        );
+                },
+            listResponsesForWorker({ worker_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_FOR_WORKER,
+                            { worker_id }, arguments
+                        );
+                },
+            listResponsesForWorkSession({ work_session_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_FOR_WORK_SESSION,
+                            { work_session_id }, arguments
+                        );
+                },
+            listProjectsWithResponses() {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_PROJECTS,
+                            {}, arguments
+                        );
+                },
+            listTemplatesWithResponses({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_TEMPLATES,
+                            { project_name }, arguments
+                        );
+                },
+            listNanotasksWithResponses({ project_name, template_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_NANOTASKS,
+                            { project_name, template_name }, arguments
+                        );
+                },
+            listWorkersWithResponses({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_WORKERS,
+                            { project_name }, arguments
+                        );
+                },
+            listWorkSessionsWithResponses({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.RESPONSE_LIST_WORK_SESSIONS,
+                            { project_name }, arguments
+                        );
+                },
+            listWorkersForProject({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.WORKER_LIST_FOR_PROJECT,
+                            { project_name }, arguments
+                        );
+                },
+            listNanotasks({ project_name, template_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.NANOTASK_LIST,
+                            { project_name, template_name }, arguments
+                        );
+                },
+            createNanotasks({ project_name, template_name, nanotasks, tag, priority, num_assignable }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.NANOTASK_ADD_MULTI_FOR_TEMPLATE,
+                            { project_name, template_name, nanotasks, tag, priority, num_assignable }, arguments
+                        );
+                },
+            deleteNanotasks({ nanotask_ids }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.NANOTASK_DELETE,
+                            { nanotask_ids }, arguments
+                        );
+                },
+            createNanotaskGroup({ name, nanotask_ids, project_name, template_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.NANOTASK_GROUP_ADD,
+                            { name, nanotask_ids, project_name, template_name }, arguments
+                        );
+                },
+            listNanotaskGroups({ project_name, template_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.NANOTASK_GROUP_LIST,
+                            { project_name, template_name }, arguments
+                        );
+                },
+            getNanotaskGroup({ nanotask_group_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.NANOTASK_GROUP_GET,
+                            { nanotask_group_id }, arguments
+                        );
+                },
+            deleteNanotaskGroup({ nanotask_group_id }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.NANOTASK_GROUP_DELETE,
+                            { nanotask_group_id }, arguments
+                        );
+                },
+            listNodeSessionsForWorkSession({ work_session_id, only_template }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.EXECUTE_AUTOMATION,
+                            { work_session_id, only_template }, arguments
+                        );
+                },
+            //getAutomationParameterSet({ automation_parameter_set_id }) {
+            //        return self._callOrSend(
+            //                self._duct.EVENT.AUTOMATION_PARAMETER_SET_GET,
+            //                { automation_parameter_set_id }, arguments
+            //            );
+            //    },
+            //listAutomationParameterSets() {
+            //        return self._callOrSend(
+            //                self._duct.EVENT.AUTOMATION_PARAMETER_SET_LIST,
+            //                {}, arguments
+            //            );
+            //    },
+            //createAutomationParameterSet({ name, platform_parameter_set_id, project_name }) {
+            //        return self._callOrSend(
+            //                self._duct.EVENT.AUTOMATION_PARAMETER_SET_ADD,
+            //                { name, platform_parameter_set_id, project_name }, arguments
+            //            );
+            //    },
+            //getPlatformParameterSet({ platform_parameter_set_id }) {
+            //        return self._callOrSend(
+            //                self._duct.EVENT.PLATFORM_PARAMETER_SET_GET,
+            //                { platform_parameter_set_id }, arguments
+            //            );
+            //    },
+            //listPlatformParameterSets() {
+            //        return self._callOrSend(
+            //                self._duct.EVENT.PLATFORM_PARAMETER_SET_LIST,
+            //                {}, arguments
+            //            );
+            //    },
+            //createPlatformParameterSet({ name, platform, parameters }) {
+            //        return self._callOrSend(
+            //                self._duct.EVENT.PLATFORM_PARAMETER_SET_ADD,
+            //                { name, platform, parameters }, arguments
+            //            );
+            //    },
+            //executeAutomation({ automation_parameter_set_id, parameters }) {
+            //        return self._callOrSend(
+            //                self._duct.EVENT.EXECUTE_AUTOMATION,
+            //                { automation_parameter_set_id, parameters }, arguments
+            //            );
+            //    },
+        });
+    }
+}
+
+module.exports = {
+        ResourceController,
+        MTurkController,
+    };
+
+
+/***/ }),
+
+/***/ "./lib/error.js":
+/*!**********************!*\
+  !*** ./lib/error.js ***!
+  \**********************/
+/***/ ((module) => {
+
+class TuttiServerEventError extends Error {
+    constructor(content){
+        super(content.stacktrace[content.stacktrace.length-1]);
+        this.name = 'TuttiServerEventError'
+        this.code = content.error_code;
+        this.details = content;
+    }
+}
+
+module.exports = {
+        TuttiServerEventError
+    };
+
+
+/***/ }),
+
+/***/ "./lib/listener.js":
+/*!*************************!*\
+  !*** ./lib/listener.js ***!
+  \*************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const ducts = __webpack_require__(/*! @iflb/ducts-client */ "../node_modules/@iflb/ducts-client/lib/ducts.js");
+
+class DuctEventListener extends ducts.DuctEventListener {
+    constructor(duct) {
+        super();
+        this._duct = duct;
+        this._handlers = {};
+
+        this.on =
+            (names, { success, error, complete }) => {
+                for(let name of (names instanceof Array) ? names : [names]) {
+                    if (!(name in this._handlers)) {
+                        throw new ReferenceError('['+name+'] is not defined');
+                    } 
+
+                    if(success)  this._handlers[name].success.push(success);
+                    if(error)    this._handlers[name].error.push(error);
+                    if(complete) this._handlers[name].complete.push(complete);
+                }
+            }
+    }
+
+    _handle(self, source, name, rid, data) {
+        if(data===null) return;
+        try {
+            const handlers = self._handlers[name];
+
+            self._duct.logger.addReceived(rid, name, data);
+
+            if(data.success) {
+                if(handlers.success) handlers.success.forEach(func => func(data.content));
+            } else {
+                if(handlers.error) handlers.error.forEach(func => func(data.content));
+            }
+            if(handlers.complete) handlers.complete.forEach(func => func());
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    _setDefaultTuttiHandlers(self, methods) {
+        for(const method of methods) {
+            self._handlers[method] = { success: [], error: [], complete: [] };
+        }
+    }
+
+    registerHandlers(self, source, listenerEventRelayMap) {
+        Object.entries(listenerEventRelayMap).forEach(([listenerName, eid]) => {
+            self._duct.setEventHandler(
+                eid,
+                (rid, eid, data) => { self._handle(source, listenerName, rid, data); }
+            )
+        });
+        self._setDefaultTuttiHandlers(Object.keys(listenerEventRelayMap));
+    }
+}
+
+class ResourceEventListener extends DuctEventListener {
+    constructor(duct) {
+        super(duct);
+
+        const listenerEventRelayMap = {
+                'getWebServiceDescriptor':
+                    duct.EVENT.SYSTEM_GET_WSD,
+                'signUp':
+                    duct.EVENT.AUTHENTICATION_SIGN_UP,
+                'signIn':
+                    duct.EVENT.AUTHENTICATION_SIGN_IN,
+                'signOut':
+                    duct.EVENT.AUTHENTICATION_SIGN_OUT,
+                'getUserIds':
+                    duct.EVENT.ACCOUNT_LIST_IDS,
+                'deleteAccount':
+                    duct.EVENT.ACCOUNT_DELETE,
+                'checkProjectDiff':
+                    duct.EVENT.SYSTEM_BUILD_CHECK_PROJECT_DIFF,
+                'rebuildProject':
+                    duct.EVENT.SYSTEM_BUILD_REBUILD_PROJECT,
+                'listProjects':
+                    duct.EVENT.PROJECT_LIST,
+                'createProject':
+                    duct.EVENT.PROJECT_ADD,
+                'deleteProject':
+                    duct.EVENT.PROJECT_DELETE,
+                'getProjectScheme':
+                    duct.EVENT.PROJECT_GET_SCHEME,
+                'createTemplate':
+                    duct.EVENT.PROJECT_ADD_TEMPLATE,
+                'deleteTemplate':
+                    duct.EVENT.PROJECT_DELETE_TEMPLATE,
+                'listTemplates':
+                    duct.EVENT.PROJECT_LIST_TEMPLATES,
+                'listTemplatePresets':
+                    duct.EVENT.PROJECT_LIST_TEMPLATE_PRESETS,
+                'listResponsesForProject':
+                    duct.EVENT.RESPONSE_LIST_FOR_PROJECT,
+                'listResponsesForTemplate':
+                    duct.EVENT.RESPONSE_LIST_FOR_TEMPLATE,
+                'listResponsesForNanotask':
+                    duct.EVENT.RESPONSE_LIST_FOR_NANOTASK,
+                'listResponsesForWorker':
+                    duct.EVENT.RESPONSE_LIST_FOR_WORKER,
+                'listResponsesForWorkSession':
+                    duct.EVENT.RESPONSE_LIST_FOR_WORK_SESSION,
+                'listProjectsWithResponses':
+                    duct.EVENT.RESPONSE_LIST_PROJECTS,
+                'listTemplatesWithResponses':
+                    duct.EVENT.RESPONSE_LIST_TEMPLATES,
+                'listNanotasksWithResponses':
+                    duct.EVENT.RESPONSE_LIST_NANOTASKS,
+                'listWorkersWithResponses':
+                    duct.EVENT.RESPONSE_LIST_WORKERS,
+                'listWorkSessionsWithResponses':
+                    duct.EVENT.RESPONSE_LIST_WORK_SESSIONS,
+                'listWorkersForProject':
+                    duct.EVENT.WORKER_GET_FOR_PLATFORM_WORKER_ID,
+                'listNanotasks':
+                    duct.EVENT.NANOTASK_LIST,
+                'createNanotasks':
+                    duct.EVENT.NANOTASK_ADD_MULTI_FOR_TEMPLATE,
+                'deleteNanotasks':
+                    duct.EVENT.NANOTASK_DELETE,
+                'createNanotaskGroup':
+                    duct.EVENT.NANOTASK_GROUP_ADD,
+                'listNanotaskGroups':
+                    duct.EVENT.NANOTASK_GROUP_LIST,
+                'getNanotaskGroup':
+                    duct.EVENT.NANOTASK_GROUP_GET,
+                'deleteNanotaskGroup':
+                    duct.EVENT.NANOTASK_GROUP_DELETE,
+                'listNodeSessionsForWorkSession':
+                    duct.EVENT.NODE_SESSION_LIST_FOR_WORK_SESSION,
+            };
+
+        this.registerHandlers('resource', listenerEventRelayMap);
+    }
+}
+
+class MTurkEventListener extends DuctEventListener {
+    constructor(duct) {
+        super(duct);
+
+        const listenerEventRelayMap = {
+                'getActiveCredentials':
+                    duct.EVENT.MARKETPLACE_MTURK_GET_ACTIVE_CREDENTIALS,
+                'setActiveCredentials':
+                    duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_CREDENTIALS,
+                'listCredentials':
+                    duct.EVENT.MARKETPLACE_MTURK_LIST_CREDENTIALS,
+                'getCredentials':
+                    duct.EVENT.MARKETPLACE_MTURK_GET_CREDENTIALS,
+                'deleteCredentials':
+                    duct.EVENT.MARKETPLACE_MTURK_DELETE_CREDENTIALS,
+                'renameCredentials':
+                    duct.EVENT.MARKETPLACE_MTURK_RENAME_CREDENTIALS,
+                'addCredentials':
+                    duct.EVENT.MARKETPLACE_MTURK_ADD_CREDENTIALS,
+                'setActiveSandboxMode':
+                    duct.EVENT.MARKETPLACE_MTURK_SET_ACTIVE_SANDBOX_MODE,
+                'execBoto3':
+                    duct.EVENT.MARKETPLACE_MTURK_EXEC_BOTO3,
+                'listHITTypes':
+                    duct.EVENT.MARKETPLACE_MTURK_HIT_TYPE_LIST,
+                'listTuttiHITBatches':
+                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST,
+                'listTuttiHITBatchesWithHITs':
+                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_LIST_WITH_HITS,
+                'createTuttiHITBatch':
+                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_CREATE,
+                'addHITsToTuttiHITBatch':
+                    duct.EVENT.MARKETPLACE_MTURK_HIT_ADD_FOR_TUTTI_HIT_BATCH,
+                'deleteTuttiHITBatch':
+                    duct.EVENT.MARKETPLACE_MTURK_TUTTI_HIT_BATCH_DELETE,
+                'listQualificationTypes':
+                    duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_LIST,
+                'createQualificationType':
+                    duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_CREATE,
+                'deleteQualificationTypes':
+                    duct.EVENT.MARKETPLACE_MTURK_QUALIFICATION_TYPE_DELETE,
+                'associateQualificationsWithWorkers':
+                    duct.EVENT.MARKETPLACE_MTURK_WORKER_ASSOCIATE_QUALIFICATIONS,
+                'listHITsForTuttiHITBatch':
+                    duct.EVENT.MARKETPLACE_MTURK_HIT_LIST_FOR_TUTTI_HIT_BATCH,
+                'expireHITs':
+                    duct.EVENT.MARKETPLACE_MTURK_HIT_EXPIRE,
+                'deleteHITs':
+                    duct.EVENT.MARKETPLACE_MTURK_HIT_DELETE,
+                'listWorkers':
+                    duct.EVENT.MARKETPLACE_MTURK_WORKER_LIST,
+                'notifyWorkers':
+                    duct.EVENT.MARKETPLACE_MTURK_WORKER_NOTIFY,
+                'listAssignmentsForTuttiHITBatch':
+                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_LIST_FOR_TUTTI_HIT_BATCH,
+                'approveAssignments':
+                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_APPROVE,
+                'rejectAssignments':
+                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_REJECT,
+                'sendBonus':
+                    duct.EVENT.MARKETPLACE_MTURK_ASSIGNMENT_SEND_BONUS,
+            };
+
+        this.registerHandlers('mturk', listenerEventRelayMap);
+    }
+}
+
+module.exports = {
+        ResourceEventListener,
+        MTurkEventListener,
+    };
+
+
+/***/ }),
+
+/***/ "./lib/tutti.js":
+/*!**********************!*\
+  !*** ./lib/tutti.js ***!
+  \**********************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const MessagePack = __webpack_require__(/*! what-the-pack */ "../node_modules/what-the-pack/browser.js");
+const ducts = __webpack_require__(/*! @iflb/ducts-client */ "../node_modules/@iflb/ducts-client/lib/ducts.js");
+const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "../node_modules/@iflb/lib/lib/lib.js");
+const { ResourceEventListener, MTurkEventListener } = __webpack_require__(/*! ./listener.js */ "./lib/listener.js")
+const { ResourceController, MTurkController } = __webpack_require__(/*! ./controller.js */ "./lib/controller.js")
+
+class TuttiClient extends ThisBound {
+    constructor(setLogger = true) {
+        super();
+
+        this._duct = new ducts.Duct();
+        this._duct.logger = setLogger ? new DuctEventLogger() : null;
+        this._opened = false;
+        this._invokeOnOpenHandlers = [];
+
+        this.accountInfo = {
+            userName: null,
+            userId: null,
+            accessToken: null,
+        };
+        this.logger = this._duct.logger;
+
+        this._duct.invokeOnOpen(async () => {
+            this.resource = new ResourceController(this._duct);
+            this.resource.on = (new ResourceEventListener(this._duct)).on;
+
+            this.mturk = new MTurkController(this._duct);
+            this.mturk.on = (new MTurkEventListener(this._duct)).on;
+
+            this.connection = this._duct._connectionListener;
+
+            const wsd = await this.resource.getWebServiceDescriptor();
+            this.ENUM = wsd.enums;
+            this.ERROR = wsd.enums.errors;
+
+            this.resource.on('signIn', {
+                success: (data) => { this._setAccountInfo(data); }
+            });
+            this.resource.on('signOut', {
+                success: (data) => { this._deleteAccountInfo(); }
+            });
+
+            this._opened = true;
+            this._invokeOnOpenHandlers.forEach((f) => { f(); });
+        });
+    }
+
+    async open(self, wsdPath) {
+        self._duct = self._duct || new ducts.Duct();
+        await self._duct.open(wsdPath);
+    }
+
+    async reconnect(self) { await self._duct.reconnect(); }
+
+    close(self) { self._duct.close(); }
+
+    invokeOnOpen(self, f) {
+        if(self._opened) f();
+        else self._invokeOnOpenHandlers.push(f);
+    }
+
+    _setAccountInfo(self, data) {
+        self.accountInfo.userName = data.user_name;
+        self.accountInfo.userId = data.user_id;
+        self.accountInfo.accessToken = data.access_token;
+        self.resource._accessToken = self.accountInfo.accessToken;
+        self.mturk._accessToken = self.accountInfo.accessToken;
+    }
+
+    _deleteAccountInfo(self) {
+        self.accountInfo.userName = null;
+        self.accountInfo.userId = null;
+        self.accountInfo.accessToken = null;
+    }
+
+    get state() {
+        return this._duct ? this._duct.state : ducts.State.CLOSE;
+    }
+}
+
+class DuctEventLogger extends ThisBound {
+    constructor(duct, dataSizeLimit) {
+        super();
+        this._duct = duct;
+        this._log = {};
+        this._orderedLog = [];
+        this.dataSizeLimit = dataSizeLimit || 3000;
+    }
+
+    addSent(self, id, label, data) {
+        self._log[id] = {
+            id,
+            label,
+            sent: {
+                content: self._skipLargeData(data),
+                timestamp: new Date()
+            },
+            received: []
+        };
+        self._orderedLog.push(self._log[id]);
+    }
+
+    addReceived(self, id, label, data) {
+        if(!(id in self._log))
+            return;
+
+        if(self._log[id].label != label)
+            console.error(`event name ${label} does not correspond to the log`);
+
+        const _data = JSON.parse(JSON.stringify(data));
+        _data.content = self._skipLargeData(_data.content);
+        _data.timestamp = new Date();
+
+        self._log[id].received.push(_data);
+    }
+
+    _skipLargeData(self, data) {
+        if(data) {
+            let newData = JSON.stringify(data);
+            if(newData.length>self.dataSizeLimit) return '[log skipped]';
+            else return JSON.parse(newData);
+        } else {
+            return data;
+        }
+    }
+
+    get log() {
+        return this._orderedLog;
+    }
+}
+
+module.exports = {
+    TuttiClient
+}
+
+
+/***/ }),
+
+/***/ "?2268":
 /*!************************!*\
   !*** crypto (ignored) ***!
   \************************/
-/***/ (function() {
+/***/ (() => {
 
 /* (ignored) */
 
 /***/ }),
 
-/***/ "?91e5":
+/***/ "?a3b0":
 /*!************************!*\
   !*** crypto (ignored) ***!
   \************************/
-/***/ (function() {
+/***/ (() => {
 
 /* (ignored) */
 
 /***/ }),
 
-/***/ "./node_modules/websocket/package.json":
-/*!*********************************************!*\
-  !*** ./node_modules/websocket/package.json ***!
-  \*********************************************/
-/***/ (function(module) {
+/***/ "../node_modules/websocket/package.json":
+/*!**********************************************!*\
+  !*** ../node_modules/websocket/package.json ***!
+  \**********************************************/
+/***/ ((module) => {
 
 "use strict";
 module.exports = JSON.parse('{"name":"websocket","description":"Websocket Client & Server Library implementing the WebSocket protocol as specified in RFC 6455.","keywords":["websocket","websockets","socket","networking","comet","push","RFC-6455","realtime","server","client"],"author":"Brian McKelvey <theturtle32@gmail.com> (https://github.com/theturtle32)","contributors":["Iñaki Baz Castillo <ibc@aliax.net> (http://dev.sipdoc.net)"],"version":"1.0.34","repository":{"type":"git","url":"https://github.com/theturtle32/WebSocket-Node.git"},"homepage":"https://github.com/theturtle32/WebSocket-Node","engines":{"node":">=4.0.0"},"dependencies":{"bufferutil":"^4.0.1","debug":"^2.2.0","es5-ext":"^0.10.50","typedarray-to-buffer":"^3.1.5","utf-8-validate":"^5.0.2","yaeti":"^0.0.6"},"devDependencies":{"buffer-equal":"^1.0.0","gulp":"^4.0.2","gulp-jshint":"^2.0.4","jshint-stylish":"^2.2.1","jshint":"^2.0.0","tape":"^4.9.1"},"config":{"verbose":false},"scripts":{"test":"tape test/unit/*.js","gulp":"gulp"},"main":"index","directories":{"lib":"./lib"},"browser":"lib/browser.js","license":"Apache-2.0"}');
@@ -11389,7 +11389,7 @@ module.exports = JSON.parse('{"name":"websocket","description":"Websocket Client
 /******/ 	
 /************************************************************************/
 /******/ 	/* webpack/runtime/global */
-/******/ 	!function() {
+/******/ 	(() => {
 /******/ 		__webpack_require__.g = (function() {
 /******/ 			if (typeof globalThis === 'object') return globalThis;
 /******/ 			try {
@@ -11398,7 +11398,7 @@ module.exports = JSON.parse('{"name":"websocket","description":"Websocket Client
 /******/ 				if (typeof window === 'object') return window;
 /******/ 			}
 /******/ 		})();
-/******/ 	}();
+/******/ 	})();
 /******/ 	
 /************************************************************************/
 /******/ 	
