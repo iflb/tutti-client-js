@@ -368,6 +368,18 @@ class ResourceController extends TuttiController {
                             { project_name, cached }, arguments
                         );
                 },
+            loadProjectSchemeCode({ project_name }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_LOAD_SCHEME_CODE,
+                            { project_name }, arguments
+                        );
+                },
+            saveProjectSchemeCode({ project_name, code }) {
+                    return self._callOrSend(
+                            self._duct.EVENT.PROJECT_SAVE_SCHEME_CODE,
+                            { project_name, code }, arguments
+                        );
+                },
             createTemplate({ project_name, template_name, preset_group_name, preset_name }) {
                     return self._callOrSend(
                             self._duct.EVENT.PROJECT_ADD_TEMPLATE,
@@ -722,6 +734,10 @@ class ResourceEventListener extends DuctEventListener {
                     duct.EVENT.PROJECT_DELETE,
                 'getProjectScheme':
                     duct.EVENT.PROJECT_GET_SCHEME,
+                'loadProjectSchemeCode':
+                    duct.EVENT.PROJECT_LOAD_SCHEME_CODE,
+                'saveProjectSchemeCode':
+                    duct.EVENT.PROJECT_SAVE_SCHEME_CODE,
                 'createTemplate':
                     duct.EVENT.PROJECT_ADD_TEMPLATE,
                 'deleteTemplate':
