@@ -476,40 +476,40 @@ class ResourceController extends TuttiController {
                             { project_name }, arguments
                         );
                 },
-            watchResponsesForProject({ project_name }) {
+            watchResponsesForProject({ project_name, last_watch_id, exclusive }) {
                     return self._callOrSend(
                             self._duct.EVENT.RESPONSE_WATCH_FOR_PROJECT,
-                            { project_name }, arguments
+                            { project_name, last_watch_id, exclusive }, arguments
                         );
                 },
-            watchResponsesForTemplate({ project_name, template_name }) {
+            watchResponsesForTemplate({ project_name, template_name, last_watch_id, exclusive }) {
                     return self._callOrSend(
                             self._duct.EVENT.RESPONSE_WATCH_FOR_TEMPLATE,
-                            { project_name, template_name }, arguments
+                            { project_name, template_name, last_watch_id, exclusive }, arguments
                         );
                 },
-            watchResponsesForNanotask({ nanotask_id }) {
+            watchResponsesForNanotask({ nanotask_id, last_watch_id, exclusive }) {
                     return self._callOrSend(
                             self._duct.EVENT.RESPONSE_WATCH_FOR_NANOTASK,
-                            { nanotask_id }, arguments
+                            { nanotask_id, last_watch_id, exclusive }, arguments
                         );
                 },
-            watchResponsesForWorker({ worker_id }) {
+            watchResponsesForWorker({ worker_id, last_watch_id, exclusive }) {
                     return self._callOrSend(
                             self._duct.EVENT.RESPONSE_WATCH_FOR_WORKER,
-                            { worker_id }, arguments
+                            { worker_id, last_watch_id, exclusive }, arguments
                         );
                 },
-            watchResponsesForAutomationParameterSet({ automation_parameter_set_id }) {
+            watchResponsesForAutomationParameterSet({ automation_parameter_set_id, last_watch_id, exclusive }) {
                     return self._callOrSend(
                             self._duct.EVENT.RESPONSE_WATCH_FOR_AUTOMATION_PARAMETER_SET,
-                            { automation_parameter_set_id }, arguments
+                            { automation_parameter_set_id, last_watch_id, exclusive }, arguments
                         );
                 },
-            watchResponsesForPlatformParameterSet({ platform_parameter_set_id }) {
+            watchResponsesForPlatformParameterSet({ platform_parameter_set_id, last_watch_id, exclusive }) {
                     return self._callOrSend(
                             self._duct.EVENT.RESPONSE_WATCH_FOR_PLATFORM_PARAMETER_SET,
-                            { platform_parameter_set_id }, arguments
+                            { platform_parameter_set_id, last_watch_id, exclusive }, arguments
                         );
                 },
             listWorkersForProject({ project_name }) {
