@@ -326,6 +326,14 @@ class ResourceController extends TuttiController {
                             {}, arguments
                         );
                 },
+            changeAccountPassword({ user_name, old_password, new_password }) {
+                    const old_password_hash = CryptoJS.MD5(old_password).toString();
+                    const new_password_hash = CryptoJS.MD5(new_password).toString();
+                    return self._callOrSend(
+                            self._duct.EVENT.ACCOUNT_CHANGE_PASSWORD,
+                            { user_name, old_password_hash, new_password_hash }, arguments
+                        );
+                },
             deleteAccount({ user_id }) {
                     return self._callOrSend(
                             self._duct.EVENT.ACCOUNT_DELETE,
@@ -720,6 +728,8 @@ class ResourceEventListener extends DuctEventListener {
                     duct.EVENT.AUTHENTICATION_SIGN_OUT,
                 'getUserIds':
                     duct.EVENT.ACCOUNT_LIST_IDS,
+                'changeAccountPassword':
+                    duct.EVENT.ACCOUNT_CHANGE_PASSWORD,
                 'deleteAccount':
                     duct.EVENT.ACCOUNT_DELETE,
                 'checkProjectDiff':
