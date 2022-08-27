@@ -31,6 +31,8 @@ module.exports = __webpack_require__(/*! ./lib/tutti */ "./lib/tutti.js");
 const { ThisBound } = __webpack_require__(/*! @iflb/lib */ "./node_modules/@iflb/lib/lib/lib.js");
 const { TuttiServerEventError } = __webpack_require__(/*! ./error.js */ "./lib/error.js");
 const CryptoJS = __webpack_require__(/*! crypto-js */ "./node_modules/crypto-js/index.js");
+const MessagePack = __webpack_require__(/*! what-the-pack */ "./node_modules/what-the-pack/browser.js");
+const { encode } = MessagePack.initialize(2**24);
 
 class TuttiController extends ThisBound {
     constructor( duct ){
@@ -81,13 +83,13 @@ class TuttiController extends ThisBound {
         if(typeof(args)!=='object') 
             throw 'Tutti args must be passed as object';
 
-        const paramsPossiblyUndefined =
-            Object.entries(rawArgs)
-                .filter(([key,]) => Object.keys(args).indexOf(key)===-1)
-                .map(([key,]) => key);
+        //const paramsPossiblyUndefined =
+        //    Object.entries(rawArgs)
+        //        .filter(([key,]) => Object.keys(args).indexOf(key)===-1)
+        //        .map(([key,]) => key);
 
-        if(paramsPossiblyUndefined.length>0)
-            console.warn(`Possibly undefined parameter(s): ${paramsPossiblyUndefined}`);
+        //if(paramsPossiblyUndefined.length>0)
+        //    console.warn(`Possibly undefined parameter(s): ${paramsPossiblyUndefined}`);
 
         if(accessToken)
             args.access_token = accessToken;
@@ -610,6 +612,62 @@ class ResourceController extends TuttiController {
                             { name, platform, parameters }, arguments
                         );
                 },
+            _loadFile({ source, path }) {
+                return self._callOrSend(
+                        self._duct.EVENT.SYSTEM_FS_OPEN_FILE,
+                        { source, current_path: path }, arguments
+                    );
+                },
+            loadFileFromProject({ path }) {
+                    return self._loadFile({ source: 'projects', path });
+                },
+            loadFileFromStorage({ path }) {
+                    return self._loadFile({ source: 'static', path });
+                },
+            async _saveFiles({ source, current_path, files, one_time_token }) {
+                    const appendBuffer = async (bufferKey, blob, chunkSize) => {
+                            for(let head=0; head<blob.length; head+=chunkSize){
+                                await self._duct.call(
+                                    self._duct.EVENT.BLOBS_BUFFER_APPEND,
+                                    [ bufferKey, blob.slice(head, Math.min(blob.length, head+chunkSize)) ]
+                                );
+                            }
+                        };
+                    
+                    if(one_time_token) {
+                        await self._duct.call(
+                            self._duct.EVENT.WORK_SESSION_CHECK_ONE_TIME_TOKEN,
+                            { one_time_token }
+                        );
+                    }
+
+                    let ductBufferKey = await self._duct.call(self._duct.EVENT.BLOBS_BUFFER_OPEN, null);
+                    await appendBuffer(
+                            ductBufferKey,
+                            encode({ current_path, files, }),
+                            1024*512
+                        );
+                    if(one_time_token) {
+                        return self._callOrSend(
+                                self._duct.EVENT.SYSTEM_FS_SAVE_FILES_IN_WORK_SESSION,
+                                { source, duct_buffer_key: ductBufferKey, one_time_token }, arguments
+                            );
+                    } else {
+                        return self._callOrSend(
+                                self._duct.EVENT.SYSTEM_FS_SAVE_FILES,
+                                { source, duct_buffer_key: ductBufferKey }, arguments
+                            );
+                    }
+                },
+            async saveFilesToStorage({ current_path, files }) {
+                    return self._saveFiles({ source: 'static', current_path, files });
+                },
+            async saveFilesToProject({ current_path, files }) {
+                    return self._saveFiles({ source: 'projects', current_path, files });
+                },
+            async saveFilesInWorkSession({ one_time_token, current_path, files }) {
+                    return self._saveFiles({ source: 'static', current_path, files, one_time_token });
+                },
             //executeAutomation({ automation_parameter_set_id, parameters }) {
             //        return self._callOrSend(
             //                self._duct.EVENT.EXECUTE_AUTOMATION,
@@ -822,6 +880,8 @@ class ResourceEventListener extends DuctEventListener {
                     duct.EVENT.PLATFORM_PARAMETER_SET_LIST,
                 'createPlatformParameterSet':
                     duct.EVENT.PLATFORM_PARAMETER_SET_ADD,
+                'saveFilesInWorkSession':
+                    duct.EVENT.SYSTEM_FS_SAVE_FILES_IN_WORK_SESSION,
             };
 
         this.registerHandlers('resource', listenerEventRelayMap);
